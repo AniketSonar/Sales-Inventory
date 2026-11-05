@@ -24,7 +24,7 @@ const login = async (req, res) => {
       const { data, error } = await authClient.auth.signInWithPassword({ email: cleanEmail, password });
       if (!error && data?.session) {
         // fetch role from profiles
-        const supabase = require("../config/supabase");
+        const { supabase } = require("../config/supabase");
         const { data: profile } = await supabase.from("profiles").select("*").eq("id", data.user.id).single();
         return res.json({
           success: true,

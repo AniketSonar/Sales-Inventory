@@ -4,7 +4,11 @@ require("dotenv").config();
 const supabaseUrl = process.env.SUPABASE_URL || "https://dummy.supabase.co";
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "dummy-key";
 
-const isConfigured = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY && !process.env.SUPABASE_URL.includes("your-supabase");
+const isConfigured = Boolean(
+  process.env.SUPABASE_URL &&
+  process.env.SUPABASE_SERVICE_ROLE_KEY &&
+  !process.env.SUPABASE_URL.includes("your-supabase")
+);
 
 const supabase = isConfigured
   ? createClient(supabaseUrl, supabaseServiceRoleKey, {
@@ -19,6 +23,8 @@ const createAuthClient = () => {
   });
 };
 
-module.exports = supabase;
-module.exports.createAuthClient = createAuthClient;
-module.exports.isConfigured = isConfigured;
+module.exports = {
+  supabase,
+  createAuthClient,
+  isConfigured
+};
