@@ -1,11 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Layers, User, Shield } from 'lucide-react';
-import './DashboardLayout.css';
+import DashboardSidebar from './DashboardSidebar';
+import DashboardTopbar from './DashboardTopbar';
+import './css/DashboardLayout.css';
 
-export default function DashboardLayout({ title, roleBadge, children }) {
+export default function DashboardLayout({
+  config,
+  activeTab,
+  setActiveTab,
+  children
+}) {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const [collapsed, setCollapsed] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem('access_token');
@@ -14,44 +20,26 @@ export default function DashboardLayout({ title, roleBadge, children }) {
   };
 
   return (
-    <div className="dash-container">
-      {/* Top Navbar */}
-      <header className="dash-header">
-        <div className="dash-brand">
-          <div className="dash-logo"><Layers size={20} color="#38bdf8" /></div>
-          <div>
-            <div className="dash-title">NexFlow Portal</div>
-            <div className="dash-sub">B2B Order Management</div>
+    <div className={`dash-app-shell ${collapsed ? 'sidebar-collapsed' : ''}`}>
+      <DashboardSidebar
+        config={config}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onLogout={handleLogout}
+        collapsed={collapsed}
+      />
+      <div className="dash-body-wrapper">
+        <DashboardTopbar
+          config={config}
+          onToggleSidebar={() => setCollapsed(!collapsed)}
+          sidebarCollapsed={collapsed}
+        />
+        <main className="dash-main-scroll">
+          <div className="dash-content-inner">
+            {children}
           </div>
-        </div>
-
-        <div className="dash-user-controls">
-          <div className="role-tag">
-            <Shield size={14} />
-            <span>{roleBadge || user.role?.toUpperCase()}</span>
-          </div>
-
-          <div className="user-profile-pill">
-            <User size={16} color="#94a3b8" />
-            <span className="user-email">{user.email || 'user@company.com'}</span>
-          </div>
-
-          <button className="btn-logout" onClick={handleLogout} title="Log Out">
-            <LogOut size={16} />
-            <span>Logout</span>
-          </button>
-        </div>
-      </header>
-
-      {/* Main Workspace */}
-      <main className="dash-main animate-fade">
-        <div className="page-header">
-          <h1>{title}</h1>
-        </div>
-        <div className="page-content">
-          {children}
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
