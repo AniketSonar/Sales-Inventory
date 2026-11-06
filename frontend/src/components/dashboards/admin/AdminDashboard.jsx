@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../layout/DashboardLayout';
 import { adminConfig } from '../../layout/dashboardConfigs';
 import { BarChart3, Users, FileText, CheckCircle2, RefreshCw, Shield, Layers } from 'lucide-react';
+import { useLiveSync } from '../../../utils/useLiveSync';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -24,9 +25,7 @@ export default function AdminDashboard() {
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useLiveSync(loadData, 3000);
 
   const statCards = [
     { title: 'Total Enquiries Logged', value: stats.enquiries, color: '#38bdf8', label: 'From Reception' },

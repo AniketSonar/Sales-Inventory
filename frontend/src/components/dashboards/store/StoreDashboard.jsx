@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../layout/DashboardLayout';
 import { storeConfig } from '../../layout/dashboardConfigs';
 import { Package, CheckCircle2, Clock, RefreshCw, Boxes } from 'lucide-react';
+import { useLiveSync } from '../../../utils/useLiveSync';
 
 export default function StoreDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -21,9 +22,7 @@ export default function StoreDashboard() {
     }
   };
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
+  useLiveSync(fetchOrders, 3000);
 
   const handlePackOrder = async (enquiryId, orderNo) => {
     try {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../layout/DashboardLayout';
 import { purchaseConfig } from '../../layout/dashboardConfigs';
 import { DollarSign, CheckCircle2, Clock, RefreshCw, AlertCircle } from 'lucide-react';
+import { useLiveSync } from '../../../utils/useLiveSync';
 
 export default function PurchaseDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -25,9 +26,7 @@ export default function PurchaseDashboard() {
     }
   };
 
-  useEffect(() => {
-    fetchEnquiries();
-  }, []);
+  useLiveSync(fetchEnquiries, 3000);
 
   const handleOpenPricingModal = (enq) => {
     setSelectedEnquiry(enq);

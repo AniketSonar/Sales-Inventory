@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../layout/DashboardLayout';
 import { salesConfig } from '../../layout/dashboardConfigs';
 import { Send, FileText, Truck, CheckCircle2, RefreshCw, DollarSign } from 'lucide-react';
+import { useLiveSync } from '../../../utils/useLiveSync';
 
 export default function SalesDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -27,9 +28,7 @@ export default function SalesDashboard() {
     }
   };
 
-  useEffect(() => {
-    fetchEnquiries();
-  }, []);
+  useLiveSync(fetchEnquiries, 3000);
 
   // 1. Issue Quotation
   const handleIssueQuotation = async (e) => {

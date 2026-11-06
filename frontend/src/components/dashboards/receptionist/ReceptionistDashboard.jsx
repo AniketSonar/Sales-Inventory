@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../layout/DashboardLayout';
 import { receptionistConfig } from '../../layout/dashboardConfigs';
 import { PlusCircle, FileText, CheckCircle2, RefreshCw, Layers } from 'lucide-react';
+import { useLiveSync } from '../../../utils/useLiveSync';
 
 export default function ReceptionistDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -20,7 +21,6 @@ export default function ReceptionistDashboard() {
 
   const fetchEnquiries = async () => {
     try {
-      setLoading(true);
       const res = await fetch('http://localhost:5000/api/enquiries');
       const data = await res.json();
       if (data.success) {
@@ -28,14 +28,10 @@ export default function ReceptionistDashboard() {
       }
     } catch (err) {
       console.error(err);
-    } finally {
-      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchEnquiries();
-  }, []);
+  useLiveSync(fetchEnquiries, 3000);
 
   const handleCreate = async (e) => {
     e.preventDefault();

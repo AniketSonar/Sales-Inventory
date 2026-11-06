@@ -10,15 +10,15 @@ const getStats = async (req, res) => {
     res.json({
       success: true,
       stats: {
-        enquiries: totalEnquiries.count,
-        quotations: activeQuotations.count,
-        orders: confirmedOrders.count,
-        dispatches: dispatchedOrders.count
+        enquiries: parseInt(totalEnquiries?.count || 0, 10),
+        quotations: parseInt(activeQuotations?.count || 0, 10),
+        orders: parseInt(confirmedOrders?.count || 0, 10),
+        dispatches: parseInt(dispatchedOrders?.count || 0, 10)
       }
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: 'Failed to retrieve stats' });
+    res.status(500).json({ success: false, message: 'Failed to retrieve stats from Supabase' });
   }
 };
 
