@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../layout/DashboardLayout';
 import { adminConfig } from '../../layout/dashboardConfigs';
-import { BarChart3, Users, FileText, CheckCircle2, RefreshCw, Shield, Layers } from 'lucide-react';
+import { BarChart3, Users, FileText, CheckCircle2, RefreshCw, Shield, Layers, TrendingUp, Clock, PackageCheck } from 'lucide-react';
 import { useLiveSync } from '../../../utils/useLiveSync';
 
 export default function AdminDashboard() {
@@ -28,10 +28,10 @@ export default function AdminDashboard() {
   useLiveSync(loadData, 3000);
 
   const statCards = [
-    { title: 'Total Enquiries Logged', value: stats.enquiries, color: '#38bdf8', label: 'From Reception' },
-    { title: 'Quotations Created', value: stats.quotations, color: '#fbbf24', label: 'By Sales Team' },
-    { title: 'Confirmed Sales Orders', value: stats.orders, color: '#818cf8', label: 'Store Fulfillment' },
-    { title: 'Completed Dispatches', value: stats.dispatches, color: '#34d399', label: 'Carrier Invoiced' }
+    { title: 'Total Enquiries Logged', value: stats.enquiries, color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', icon: FileText, label: 'Enquiry Desk Leadhub' },
+    { title: 'Quotations Created', value: stats.quotations, color: '#d97706', bg: '#fffbeb', border: '#fde68a', icon: TrendingUp, label: 'Commercial Sales Desk' },
+    { title: 'Confirmed Sales Orders', value: stats.orders, color: '#4f46e5', bg: '#eef2ff', border: '#c7d2fe', icon: PackageCheck, label: 'Warehouse Fulfilment' },
+    { title: 'Completed Dispatches', value: stats.dispatches, color: '#059669', bg: '#ecfdf5', border: '#a7f3d0', icon: CheckCircle2, label: 'Carrier Invoiced & Closed' }
   ];
 
   return (
@@ -40,73 +40,120 @@ export default function AdminDashboard() {
       activeTab={activeTab}
       setActiveTab={setActiveTab}
     >
-      <div className="dash-view-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="dash-view-header">
         <div>
-          <h2 style={{ fontSize: '1.6rem', fontWeight: 700 }}>Executive Management Console</h2>
-          <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginTop: '4px' }}>Real-time database analytics and cross-department pipeline visibility.</p>
+          <h2>Executive Management Console</h2>
+          <p>Real-time database analytics and cross-department pipeline visibility.</p>
         </div>
         <button
           onClick={loadData}
-          className="dash-btn"
-          style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#1e293b' }}
+          className="dash-btn dash-btn-secondary"
         >
           <RefreshCw size={15} /> Refresh Analytics
         </button>
       </div>
 
       {/* Analytics KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-        {statCards.map((card, idx) => (
-          <div key={idx} className="dash-card" style={{ padding: '20px', margin: 0 }}>
-            <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>{card.title}</div>
-            <div style={{ fontSize: '2.4rem', fontWeight: 800, color: card.color, margin: '8px 0' }}>{card.value}</div>
-            <div style={{ fontSize: '0.78rem', color: '#64748b' }}>{card.label}</div>
-          </div>
-        ))}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '18px', marginBottom: '24px' }}>
+        {statCards.map((card, idx) => {
+          const IconComponent = card.icon;
+          return (
+            <div key={idx} className="dash-card" style={{ padding: '20px', margin: 0, borderTop: `4px solid ${card.color}` }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>{card.title}</span>
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: card.bg, border: `1px solid ${card.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: card.color }}>
+                  <IconComponent size={16} />
+                </div>
+              </div>
+              <div style={{ fontSize: '2.2rem', fontWeight: 800, color: '#0f172a', margin: '8px 0 4px', letterSpacing: '-0.02em' }}>
+                {card.value}
+              </div>
+              <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 500 }}>{card.label}</div>
+            </div>
+          );
+        })}
       </div>
 
       {/* TAB 1: EXECUTIVE DASHBOARD / PIPELINE */}
       {(activeTab === 'dashboard' || activeTab === 'pipeline') && (
         <div className="dash-card">
           <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <FileText size={18} color="#38bdf8" /> End-to-End Enterprise Order Traceability
+            <FileText size={19} color="#2563eb" /> End-to-End Enterprise Order Traceability
           </h3>
-          <table className="dash-table">
-            <thead>
-              <tr>
-                <th>Enquiry No</th>
-                <th>Customer</th>
-                <th>Category</th>
-                <th>Part Code</th>
-                <th>Purchase Cost</th>
-                <th>Quote Ref</th>
-                <th>Order Ref</th>
-                <th>Dispatch</th>
-              </tr>
-            </thead>
-            <tbody>
-              {enquiries.map(enq => (
-                <tr key={enq.id}>
-                  <td><strong style={{ color: '#38bdf8' }}>{enq.enquiry_no}</strong></td>
-                  <td>{enq.customer_name}</td>
-                  <td>
-                    <span className="status-badge" style={{ background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8' }}>
-                      {enq.category}
-                    </span>
-                  </td>
-                  <td>{enq.part_code} (×{enq.quantity})</td>
-                  <td>{enq.supplier_cost ? `$${enq.supplier_cost}` : <span style={{ color: '#94a3b8' }}>—</span>}</td>
-                  <td>{enq.quotation_no ? `$${enq.quotation_amount}` : <span style={{ color: '#94a3b8' }}>—</span>}</td>
-                  <td>{enq.order_no || <span style={{ color: '#94a3b8' }}>—</span>}</td>
-                  <td>
-                    <span className={`status-badge ${enq.status.includes('Dispatched') ? 'badge-success' : 'badge-warning'}`}>
-                      {enq.status}
-                    </span>
-                  </td>
+          <div className="dash-table-wrapper">
+            <table className="dash-table">
+              <thead>
+                <tr>
+                  <th style={{ width: '130px' }}>Enquiry No</th>
+                  <th>Customer</th>
+                  <th>Category</th>
+                  <th>Part Code & Qty</th>
+                  <th>Purchase Cost</th>
+                  <th>Quote Ref</th>
+                  <th>Order Ref</th>
+                  <th>Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {enquiries.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                      No data available in system register.
+                    </td>
+                  </tr>
+                ) : (
+                  enquiries.map(enq => (
+                    <tr key={enq.id}>
+                      <td>
+                        <span className="data-code-pill">{enq.enquiry_no}</span>
+                      </td>
+                      <td>
+                        <strong style={{ color: '#0f172a', display: 'block', fontSize: '0.88rem' }}>{enq.customer_name}</strong>
+                      </td>
+                      <td>
+                        <span className="status-badge badge-blue">
+                          {enq.category}
+                        </span>
+                      </td>
+                      <td>
+                        <span style={{ fontWeight: 600, color: '#1e293b' }}>{enq.part_code}</span>
+                        <span className="status-badge badge-slate" style={{ marginLeft: 6, fontSize: '0.72rem', padding: '2px 6px' }}>×{enq.quantity}</span>
+                      </td>
+                      <td>
+                        {enq.supplier_cost ? (
+                          <span style={{ fontWeight: 700, color: '#2563eb' }}>${Number(enq.supplier_cost).toFixed(2)}</span>
+                        ) : (
+                          <span className="status-badge badge-amber" style={{ fontSize: '0.74rem' }}>Awaiting Cost</span>
+                        )}
+                      </td>
+                      <td>
+                        {enq.quotation_no ? (
+                          <div>
+                            <strong style={{ color: '#059669', fontSize: '0.92rem' }}>${Number(enq.quotation_amount).toFixed(2)}</strong>
+                            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{enq.quotation_no}</div>
+                          </div>
+                        ) : (
+                          <span style={{ color: '#94a3b8' }}>—</span>
+                        )}
+                      </td>
+                      <td>
+                        {enq.order_no ? (
+                          <span style={{ color: '#4f46e5', fontWeight: 700 }}>{enq.order_no}</span>
+                        ) : (
+                          <span style={{ color: '#94a3b8' }}>—</span>
+                        )}
+                      </td>
+                      <td>
+                        <span className={`status-badge ${enq.status.includes('Dispatched') ? 'badge-emerald' : enq.status.includes('Confirmed') ? 'badge-blue' : 'badge-amber'}`}>
+                          {enq.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -114,56 +161,58 @@ export default function AdminDashboard() {
       {activeTab === 'roles' && (
         <div className="dash-card">
           <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Users size={18} color="#38bdf8" /> Configured Corporate Logins
+            <Users size={19} color="#2563eb" /> Configured Corporate Logins
           </h3>
-          <table className="dash-table">
-            <thead>
-              <tr>
-                <th>Role ID</th>
-                <th>Login Email</th>
-                <th>Department</th>
-                <th>Core Permissions</th>
-                <th>Access Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><strong>1. Admin</strong></td>
-                <td>admin@company.com</td>
-                <td>Executive Management</td>
-                <td>Full system settings, analytics & user access</td>
-                <td><span className="status-badge badge-success">Active</span></td>
-              </tr>
-              <tr>
-                <td><strong>2. Receptionist</strong></td>
-                <td>reception@company.com</td>
-                <td>Enquiry Desk</td>
-                <td>Log customer leads, category tagging (Mechanical/Electrical/IT)</td>
-                <td><span className="status-badge badge-success">Active</span></td>
-              </tr>
-              <tr>
-                <td><strong>3. Sales</strong></td>
-                <td>sales@company.com</td>
-                <td>Commercial</td>
-                <td>Quotation creation, PO verification, Sales Orders, Invoice & Dispatch</td>
-                <td><span className="status-badge badge-success">Active</span></td>
-              </tr>
-              <tr>
-                <td><strong>4. Purchase</strong></td>
-                <td>purchase@company.com</td>
-                <td>Procurement</td>
-                <td>Supplier costs, stock availability checks, procurement lead times</td>
-                <td><span className="status-badge badge-success">Active</span></td>
-              </tr>
-              <tr>
-                <td><strong>5. Store</strong></td>
-                <td>store@company.com</td>
-                <td>Warehouse / Inventory</td>
-                <td>Stock checking, picking, packing, stock reservation</td>
-                <td><span className="status-badge badge-success">Active</span></td>
-              </tr>
-            </tbody>
-          </table>
+          <div className="dash-table-wrapper">
+            <table className="dash-table">
+              <thead>
+                <tr>
+                  <th>Role ID</th>
+                  <th>Login Email</th>
+                  <th>Department</th>
+                  <th>Core Permissions</th>
+                  <th>Access Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong style={{ color: '#0f172a' }}>1. Admin</strong></td>
+                  <td><span className="data-code-pill">admin@company.com</span></td>
+                  <td>Executive Management</td>
+                  <td>Full system settings, analytics & user access</td>
+                  <td><span className="status-badge badge-emerald"><CheckCircle2 size={13} /> Active</span></td>
+                </tr>
+                <tr>
+                  <td><strong style={{ color: '#0f172a' }}>2. Receptionist</strong></td>
+                  <td><span className="data-code-pill">reception@company.com</span></td>
+                  <td>Enquiry Desk</td>
+                  <td>Log customer leads, category tagging (Mechanical/Electrical/IT)</td>
+                  <td><span className="status-badge badge-emerald"><CheckCircle2 size={13} /> Active</span></td>
+                </tr>
+                <tr>
+                  <td><strong style={{ color: '#0f172a' }}>3. Sales</strong></td>
+                  <td><span className="data-code-pill">sales@company.com</span></td>
+                  <td>Commercial</td>
+                  <td>Quotation creation, PO verification, Sales Orders, Invoice & Dispatch</td>
+                  <td><span className="status-badge badge-emerald"><CheckCircle2 size={13} /> Active</span></td>
+                </tr>
+                <tr>
+                  <td><strong style={{ color: '#0f172a' }}>4. Purchase</strong></td>
+                  <td><span className="data-code-pill">purchase@company.com</span></td>
+                  <td>Procurement</td>
+                  <td>Supplier costs, stock availability checks, procurement lead times</td>
+                  <td><span className="status-badge badge-emerald"><CheckCircle2 size={13} /> Active</span></td>
+                </tr>
+                <tr>
+                  <td><strong style={{ color: '#0f172a' }}>5. Store</strong></td>
+                  <td><span className="data-code-pill">store@company.com</span></td>
+                  <td>Warehouse / Inventory</td>
+                  <td>Stock checking, picking, packing, stock reservation</td>
+                  <td><span className="status-badge badge-emerald"><CheckCircle2 size={13} /> Active</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -171,25 +220,28 @@ export default function AdminDashboard() {
       {activeTab === 'reports' && (
         <div className="dash-card">
           <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <BarChart3 size={18} color="#38bdf8" /> Category Breakdown
+            <BarChart3 size={19} color="#2563eb" /> Category Breakdown
           </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginTop: '16px' }}>
-            <div style={{ background: '#0f172a', padding: '16px', borderRadius: '8px', border: '1px solid #1e293b' }}>
-              <h4 style={{ color: '#38bdf8' }}>Mechanical</h4>
-              <p style={{ fontSize: '1.4rem', fontWeight: 700, margin: '8px 0' }}>
-                {enquiries.filter(e => e.category === 'Mechanical').length} Enquiries
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginTop: '16px' }}>
+            <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '10px', border: '1px solid #e2e8f0', borderLeft: '4px solid #2563eb' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>Division 1</div>
+              <h4 style={{ color: '#2563eb', fontSize: '1.1rem', margin: '4px 0' }}>Mechanical</h4>
+              <p style={{ fontSize: '1.8rem', fontWeight: 800, color: '#0f172a', margin: '8px 0' }}>
+                {enquiries.filter(e => e.category === 'Mechanical').length} <span style={{ fontSize: '0.9rem', fontWeight: 500, color: '#64748b' }}>Enquiries</span>
               </p>
             </div>
-            <div style={{ background: '#0f172a', padding: '16px', borderRadius: '8px', border: '1px solid #1e293b' }}>
-              <h4 style={{ color: '#fbbf24' }}>Electrical</h4>
-              <p style={{ fontSize: '1.4rem', fontWeight: 700, margin: '8px 0' }}>
-                {enquiries.filter(e => e.category === 'Electrical').length} Enquiries
+            <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '10px', border: '1px solid #e2e8f0', borderLeft: '4px solid #d97706' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>Division 2</div>
+              <h4 style={{ color: '#d97706', fontSize: '1.1rem', margin: '4px 0' }}>Electrical</h4>
+              <p style={{ fontSize: '1.8rem', fontWeight: 800, color: '#0f172a', margin: '8px 0' }}>
+                {enquiries.filter(e => e.category === 'Electrical').length} <span style={{ fontSize: '0.9rem', fontWeight: 500, color: '#64748b' }}>Enquiries</span>
               </p>
             </div>
-            <div style={{ background: '#0f172a', padding: '16px', borderRadius: '8px', border: '1px solid #1e293b' }}>
-              <h4 style={{ color: '#34d399' }}>Computer / IT</h4>
-              <p style={{ fontSize: '1.4rem', fontWeight: 700, margin: '8px 0' }}>
-                {enquiries.filter(e => e.category === 'Computer / IT').length} Enquiries
+            <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '10px', border: '1px solid #e2e8f0', borderLeft: '4px solid #059669' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>Division 3</div>
+              <h4 style={{ color: '#059669', fontSize: '1.1rem', margin: '4px 0' }}>Computer / IT</h4>
+              <p style={{ fontSize: '1.8rem', fontWeight: 800, color: '#0f172a', margin: '8px 0' }}>
+                {enquiries.filter(e => e.category === 'Computer / IT').length} <span style={{ fontSize: '0.9rem', fontWeight: 500, color: '#64748b' }}>Enquiries</span>
               </p>
             </div>
           </div>

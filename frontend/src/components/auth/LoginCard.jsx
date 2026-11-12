@@ -80,7 +80,7 @@ export default function LoginCard() {
       {/* Quick Role Fillers for seamless testing */}
       <div className="demo-roles-banner">
         <div className="demo-badge">
-          <Sparkles size={14} color="#38bdf8" />
+          <Sparkles size={14} color="#2563eb" />
           <span>Quick Login:</span>
         </div>
         <div className="demo-btns">

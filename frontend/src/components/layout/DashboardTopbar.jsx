@@ -35,7 +35,7 @@ export default function DashboardTopbar({
         </div>
 
         <div className="topbar-user-chip">
-          <User size={15} color="#94a3b8" />
+          <User size={15} color="#475569" />
           <span>{user.name || user.email || config.defaultName}</span>
         </div>
       </div>

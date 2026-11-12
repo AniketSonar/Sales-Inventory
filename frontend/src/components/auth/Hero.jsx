@@ -5,7 +5,7 @@ export default function Hero() {
   return (
     <div className="auth-hero">
       <div className="auth-hero-header">
-        <div className="brand-icon"><Layers size={26} color="#38bdf8" /></div>
+        <div className="brand-icon"><Layers size={26} color="#2563eb" /></div>
         <h2>NexFlow Enterprise</h2>
       </div>
 
@@ -15,21 +15,21 @@ export default function Hero() {
 
         <div className="hero-feature-list">
           <div className="hero-feat-item">
-            <ShieldCheck size={20} color="#38bdf8" />
+            <ShieldCheck size={20} color="#2563eb" />
             <div>
               <strong>Role-Guarded Security</strong>
               <span>Restricted access for Receptionist, Sales, Purchase & Store.</span>
             </div>
           </div>
           <div className="hero-feat-item">
-            <Zap size={20} color="#fbbf24" />
+            <Zap size={20} color="#d97706" />
             <div>
               <strong>Instant Order Routing</strong>
               <span>Lead logging, pricing feedback, and picking pipeline in real time.</span>
             </div>
           </div>
           <div className="hero-feat-item">
-            <Activity size={20} color="#34d399" />
+            <Activity size={20} color="#059669" />
             <div>
               <strong>Audit & Traceability</strong>
               <span>Complete timeline tracking from enquiry to customer delivery.</span>

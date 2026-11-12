@@ -15,7 +15,7 @@ export default function DashboardSidebar({
       {/* Brand Monogram */}
       <div className="dash-brand">
         <div className="dash-brand-emblem-wrap">
-          <Layers size={26} color="#38bdf8" />
+          <Layers size={24} color="#2563eb" />
         </div>
         {!collapsed && (
           <div className="dash-brand-text">
@@ -61,7 +61,7 @@ export default function DashboardSidebar({
           onClick={onLogout}
           title="Sign Out"
         >
-          <LogOut size={18} color="#ef4444" />
+          <LogOut size={18} color="#dc2626" />
           {!collapsed && <span>Sign Out</span>}
         </button>
       </div>
