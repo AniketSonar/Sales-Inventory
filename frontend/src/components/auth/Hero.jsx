@@ -1,45 +1,72 @@
 import React from 'react';
-import { Layers, ShieldCheck, Zap, Activity } from 'lucide-react';
+import { Layers, ShieldCheck, Zap, Activity, CheckCircle2 } from 'lucide-react';
 
 export default function Hero() {
   return (
-    <div className="auth-hero">
-      <div className="auth-hero-header">
-        <div className="brand-icon"><Layers size={26} color="#2563eb" /></div>
-        <h2>NexFlow Enterprise</h2>
+    <div className="split-hero-side">
+      {/* Brand Header */}
+      <div className="split-brand-header">
+        <div className="split-brand-logo">
+          <Layers size={24} />
+        </div>
+        <div className="split-brand-title">
+          <h2>NexFlow</h2>
+          <span>Sales & Inventory Portal</span>
+        </div>
       </div>
 
-      <div className="auth-hero-body">
-        <h3>Connected Operations Across 5 Strategic Roles</h3>
-        <p>Log in with your authorized corporate role to access your synchronized dashboard.</p>
+      {/* Main Pitch */}
+      <div className="split-hero-main">
+        <div className="split-badge-pill">
+          <span className="pulse-dot"></span>
+          <span>Core v2.4 Active</span>
+        </div>
 
-        <div className="hero-feature-list">
-          <div className="hero-feat-item">
-            <ShieldCheck size={20} color="#2563eb" />
-            <div>
-              <strong>Role-Guarded Security</strong>
-              <span>Restricted access for Receptionist, Sales, Purchase & Store.</span>
+        <h1>Unified Commercial & Inventory Operations</h1>
+        <p>
+          Role-governed operational dashboard coordinating Sales, Stores, 
+          Purchase, and Reception in real time with end-to-end traceability.
+        </p>
+
+        <div className="split-feat-list">
+          <div className="split-feat-item">
+            <div className="split-feat-icon-box">
+              <ShieldCheck size={18} />
+            </div>
+            <div className="split-feat-text">
+              <strong>Role-Enforced Workspaces</strong>
+              <span>Dedicated dashboards tailored to your department authorization.</span>
             </div>
           </div>
-          <div className="hero-feat-item">
-            <Zap size={20} color="#d97706" />
-            <div>
-              <strong>Instant Order Routing</strong>
-              <span>Lead logging, pricing feedback, and picking pipeline in real time.</span>
+
+          <div className="split-feat-item">
+            <div className="split-feat-icon-box">
+              <Zap size={18} />
+            </div>
+            <div className="split-feat-text">
+              <strong>Instant Pipeline Routing</strong>
+              <span>Lead logging, pricing feedback, stock picking, and order handoffs.</span>
             </div>
           </div>
-          <div className="hero-feat-item">
-            <Activity size={20} color="#059669" />
-            <div>
-              <strong>Audit & Traceability</strong>
-              <span>Complete timeline tracking from enquiry to customer delivery.</span>
+
+          <div className="split-feat-item">
+            <div className="split-feat-icon-box">
+              <Activity size={18} />
+            </div>
+            <div className="split-feat-text">
+              <strong>Full Audit Compliance</strong>
+              <span>Complete timeline ledger from initial quotation to final delivery.</span>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="auth-hero-footer">
-        <span>Enterprise B2B Fulfillment Platform</span>
+      {/* Footer System Badge */}
+      <div className="split-hero-footer">
+        <span>© 2026 NexFlow ERP</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+          <CheckCircle2 size={14} color="#34d399" /> 99.98% System Uptime
+        </span>
       </div>
     </div>
   );

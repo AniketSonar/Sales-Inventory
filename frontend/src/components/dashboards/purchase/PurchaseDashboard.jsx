@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../layout/DashboardLayout';
 import { purchaseConfig } from '../../layout/dashboardConfigs';
-import { DollarSign, CheckCircle2, Clock, RefreshCw, AlertCircle, ShoppingCart, Box, X } from 'lucide-react';
+import { DollarSign, IndianRupee, CheckCircle2, Clock, RefreshCw, AlertCircle, ShoppingCart, Box, X, Lock } from 'lucide-react';
 import { useLiveSync } from '../../../utils/useLiveSync';
 
 export default function PurchaseDashboard() {
@@ -13,6 +13,12 @@ export default function PurchaseDashboard() {
   const [leadTime, setLeadTime] = useState(3);
   const [notes, setNotes] = useState('');
   const [msg, setMsg] = useState('');
+
+  const isClosed = (enq) => {
+    const s = (enq.status || '').toLowerCase();
+    const d = (enq.dispatch_status || '').toLowerCase();
+    return s.includes('closed') || s.includes('dispatched') || d.includes('dispatched');
+  };
 
   const fetchEnquiries = async () => {
     try {
@@ -29,6 +35,10 @@ export default function PurchaseDashboard() {
   useLiveSync(fetchEnquiries, 3000);
 
   const handleOpenPricingModal = (enq) => {
+    if (isClosed(enq)) {
+      alert(`Order ${enq.order_no || enq.enquiry_no} has already been closed and dispatched. Pricing is locked.`);
+      return;
+    }
     setSelectedEnquiry(enq);
     setSupplierCost(enq.supplier_cost || '');
     setAvailability(enq.availability || 'Available');
@@ -94,7 +104,7 @@ export default function PurchaseDashboard() {
         {/* Enquiries List */}
         <div className="dash-card">
           <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <DollarSign size={19} color="#2563eb" /> Enquiries Awaiting / With Purchase Pricing
+            <DollarSign size={19} color="#18476c" /> Enquiries Awaiting / With Purchase Pricing
           </h3>
           <div className="dash-table-wrapper">
             <table className="dash-table">
@@ -137,7 +147,7 @@ export default function PurchaseDashboard() {
                       </td>
                       <td>
                         {enq.supplier_cost ? (
-                          <span style={{ color: '#059669', fontWeight: 700, fontSize: '0.92rem' }}>${Number(enq.supplier_cost).toFixed(2)}</span>
+                          <span style={{ color: '#059669', fontWeight: 700, fontSize: '0.92rem' }}>₹{Number(enq.supplier_cost).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                         ) : (
                           <span className="status-badge badge-amber" style={{ fontSize: '0.74rem' }}>Awaiting Cost</span>
                         )}
@@ -155,12 +165,22 @@ export default function PurchaseDashboard() {
                         )}
                       </td>
                       <td style={{ textAlign: 'right', paddingRight: '20px' }}>
-                        <button
-                          className={enq.supplier_cost ? "dash-btn dash-btn-secondary" : "dash-btn"}
-                          onClick={() => handleOpenPricingModal(enq)}
-                        >
-                          <DollarSign size={14} /> {enq.supplier_cost ? 'Update Cost' : 'Enter Pricing'}
-                        </button>
+                        {isClosed(enq) ? (
+                          <span
+                            className="status-badge badge-slate"
+                            style={{ fontSize: '0.78rem', padding: '5px 10px', display: 'inline-flex', alignItems: 'center', gap: '5px', opacity: 0.85 }}
+                            title="Order is closed and fulfilled. Pricing is permanently locked."
+                          >
+                            <Lock size={12} /> Locked (Closed)
+                          </span>
+                        ) : (
+                          <button
+                            className={enq.supplier_cost ? "dash-btn dash-btn-secondary" : "dash-btn"}
+                            onClick={() => handleOpenPricingModal(enq)}
+                          >
+                            <IndianRupee size={14} /> {enq.supplier_cost ? 'Update Cost' : 'Enter Pricing'}
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))
@@ -172,10 +192,10 @@ export default function PurchaseDashboard() {
 
         {/* Pricing Side Panel */}
         {selectedEnquiry && (
-          <div className="dash-card animate-fade" style={{ border: '1px solid #bfdbfe', boxShadow: 'var(--shadow-md)' }}>
+          <div className="dash-card animate-fade" style={{ border: '1px solid #cbdce8', boxShadow: 'var(--shadow-md)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', paddingBottom: '10px', borderBottom: '1px solid #e2e8f0' }}>
               <h3 style={{ margin: 0, padding: 0, border: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <DollarSign size={19} color="#2563eb" /> Record Pricing
+                <DollarSign size={19} color="#18476c" /> Record Pricing
               </h3>
               <button
                 type="button"
@@ -194,7 +214,7 @@ export default function PurchaseDashboard() {
 
             <form onSubmit={handleSubmitPricing} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', color: '#334155', fontWeight: 600, marginBottom: '6px' }}>Supplier Cost Per Unit ($) *</label>
+                <label style={{ display: 'block', fontSize: '0.82rem', color: '#334155', fontWeight: 600, marginBottom: '6px' }}>Supplier Cost Per Unit (₹) *</label>
                 <input
                   type="number"
                   step="0.01"

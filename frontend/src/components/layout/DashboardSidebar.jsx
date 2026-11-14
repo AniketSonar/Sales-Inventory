@@ -15,12 +15,12 @@ export default function DashboardSidebar({
       {/* Brand Monogram */}
       <div className="dash-brand">
         <div className="dash-brand-emblem-wrap">
-          <Layers size={24} color="#2563eb" />
+          <Layers size={24} color="#18476c" />
         </div>
         {!collapsed && (
           <div className="dash-brand-text">
-            <h3>NexFlow B2B</h3>
-            <span>{config.brandSubtitle || 'ENTERPRISE ERP'}</span>
+            <h3>NexFlow</h3>
+            <span>{config.brandSubtitle || 'ERP'}</span>
           </div>
         )}
       </div>

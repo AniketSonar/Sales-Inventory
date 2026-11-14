@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../layout/DashboardLayout';
 import { receptionistConfig } from '../../layout/dashboardConfigs';
-import { PlusCircle, FileText, CheckCircle2, RefreshCw, Layers, Calendar, User, Phone, Mail, Box } from 'lucide-react';
+import { PlusCircle, FileText, CheckCircle2, RefreshCw, Layers, Calendar, User, Phone, Mail, Box, Paperclip, X } from 'lucide-react';
 import { useLiveSync } from '../../../utils/useLiveSync';
 
 export default function ReceptionistDashboard() {
@@ -18,6 +18,8 @@ export default function ReceptionistDashboard() {
   const [partCode, setPartCode] = useState('');
   const [qty, setQty] = useState(1);
   const [notes, setNotes] = useState('');
+  const [pdfAttachment, setPdfAttachment] = useState('');
+  const [pdfName, setPdfName] = useState('');
 
   const fetchEnquiries = async () => {
     try {
@@ -33,6 +35,26 @@ export default function ReceptionistDashboard() {
 
   useLiveSync(fetchEnquiries, 3000);
 
+  const handleFileChange = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) {
+      if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+        alert('Please attach a valid PDF document.');
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        alert('File size exceeds 10MB limit.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        setPdfAttachment(reader.result);
+        setPdfName(file.name);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleCreate = async (e) => {
     e.preventDefault();
     try {
@@ -46,7 +68,9 @@ export default function ReceptionistDashboard() {
           category,
           part_code: partCode,
           quantity: qty,
-          notes
+          notes,
+          pdf_attachment: pdfAttachment,
+          attachment_name: pdfName
         })
       });
       const data = await res.json();
@@ -58,6 +82,8 @@ export default function ReceptionistDashboard() {
         setPartCode('');
         setQty(1);
         setNotes('');
+        setPdfAttachment('');
+        setPdfName('');
         fetchEnquiries();
         setTimeout(() => setMsg(''), 4000);
       }
@@ -96,7 +122,7 @@ export default function ReceptionistDashboard() {
       {(activeTab === 'dashboard' || activeTab === 'all-enquiries') && (
         <div className="dash-card">
           <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <FileText size={19} color="#2563eb" /> Real Database Enquiries Register
+            <FileText size={19} color="#18476c" /> Real Database Enquiries Register
           </h3>
           <div className="dash-table-wrapper">
             <table className="dash-table">
@@ -108,13 +134,14 @@ export default function ReceptionistDashboard() {
                   <th>Part Code</th>
                   <th>Qty</th>
                   <th>Current Status</th>
+                  <th>Attached PDF</th>
                   <th>Date Logged</th>
                 </tr>
               </thead>
               <tbody>
                 {enquiries.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                    <td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
                       No enquiries recorded yet.
                     </td>
                   </tr>
@@ -144,6 +171,37 @@ export default function ReceptionistDashboard() {
                           {enq.status}
                         </span>
                       </td>
+                      <td>
+                        {enq.pdf_attachment ? (
+                          <a
+                            href={enq.pdf_attachment}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download={enq.attachment_name || `${enq.enquiry_no}_attachment.pdf`}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '4px 10px',
+                              background: '#f8fafc',
+                              border: '1px solid #cbd5e1',
+                              borderRadius: '6px',
+                              color: '#1e40af',
+                              textDecoration: 'none',
+                              fontSize: '0.78rem',
+                              fontWeight: 600
+                            }}
+                            title={enq.attachment_name || 'Download / View PDF'}
+                          >
+                            <Paperclip size={13} color="#2563eb" />
+                            <span style={{ maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {enq.attachment_name || 'View PDF'}
+                            </span>
+                          </a>
+                        ) : (
+                          <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>—</span>
+                        )}
+                      </td>
                       <td style={{ color: '#64748b', fontSize: '0.82rem' }}>
                         {new Date(enq.created_at).toLocaleDateString()}
                       </td>
@@ -160,7 +218,7 @@ export default function ReceptionistDashboard() {
       {activeTab === 'new-enquiry' && (
         <div className="dash-card" style={{ maxWidth: '780px' }}>
           <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <PlusCircle size={19} color="#2563eb" /> Register Customer Requirement
+            <PlusCircle size={19} color="#18476c" /> Register Customer Requirement
           </h3>
           <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '18px', marginTop: '16px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -248,6 +306,51 @@ export default function ReceptionistDashboard() {
               />
             </div>
 
+            <div>
+              <label style={{ display: 'block', fontSize: '0.84rem', color: '#334155', fontWeight: 600, marginBottom: '6px' }}>
+                Attach PDF Document
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <label style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '9px 16px',
+                  background: '#f8fafc',
+                  border: '1.5px dashed #94a3b8',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  color: '#1e293b',
+                  transition: 'background 0.15s'
+                }}>
+                  <Paperclip size={16} color="#18476c" />
+                  {pdfName ? 'Change Attached PDF' : 'Attach PDF Document'}
+                  <input
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    onChange={handleFileChange}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+                {pdfName && (
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#eff6ff', padding: '7px 12px', borderRadius: '6px', border: '1px solid #bfdbfe', fontSize: '0.84rem', color: '#1e40af' }}>
+                    <FileText size={16} />
+                    <span style={{ fontWeight: 600, maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pdfName}</span>
+                    <button
+                      type="button"
+                      onClick={() => { setPdfAttachment(''); setPdfName(''); }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '2px', display: 'flex' }}
+                      title="Remove attached PDF"
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <button type="submit" className="dash-btn" style={{ padding: '12px 20px', fontSize: '0.95rem', marginTop: '6px' }}>
               <PlusCircle size={17} /> Save Enquiry to Database & Route to Procurement
             </button>
@@ -258,16 +361,16 @@ export default function ReceptionistDashboard() {
       {/* TAB 3: CATEGORIES */}
       {activeTab === 'categories' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '18px' }}>
-          <div className="dash-card" style={{ borderLeft: '4px solid #2563eb' }}>
-            <h4 style={{ color: '#2563eb', marginBottom: '8px', fontSize: '1.05rem', fontWeight: 700 }}>Mechanical Division</h4>
+          <div className="dash-card" style={{ borderTop: '4px solid #18476c' }}>
+            <h4 style={{ color: '#18476c', marginBottom: '8px', fontSize: '1.05rem', fontWeight: 700 }}>Mechanical Division</h4>
             <p style={{ fontSize: '0.86rem', color: '#64748b', lineHeight: 1.5 }}>Valves, actuators, industrial pumps, gearboxes, bearings, flanges and mechanical hardware.</p>
           </div>
-          <div className="dash-card" style={{ borderLeft: '4px solid #d97706' }}>
-            <h4 style={{ color: '#d97706', marginBottom: '8px', fontSize: '1.05rem', fontWeight: 700 }}>Electrical Division</h4>
+          <div className="dash-card" style={{ borderTop: '4px solid #475569' }}>
+            <h4 style={{ color: '#334155', marginBottom: '8px', fontSize: '1.05rem', fontWeight: 700 }}>Electrical Division</h4>
             <p style={{ fontSize: '0.86rem', color: '#64748b', lineHeight: 1.5 }}>Transformers, circuit breakers, contactors, relays, power distribution panels, cables and sensors.</p>
           </div>
-          <div className="dash-card" style={{ borderLeft: '4px solid #059669' }}>
-            <h4 style={{ color: '#059669', marginBottom: '8px', fontSize: '1.05rem', fontWeight: 700 }}>Computer / IT Division</h4>
+          <div className="dash-card" style={{ borderTop: '4px solid #0f172a' }}>
+            <h4 style={{ color: '#0f172a', marginBottom: '8px', fontSize: '1.05rem', fontWeight: 700 }}>Computer / IT Division</h4>
             <p style={{ fontSize: '0.86rem', color: '#64748b', lineHeight: 1.5 }}>Rack servers, network switches, enterprise storage, UPS systems, routers and workstation parts.</p>
           </div>
         </div>

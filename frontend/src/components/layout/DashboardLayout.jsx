@@ -33,6 +33,7 @@ export default function DashboardLayout({
           config={config}
           onToggleSidebar={() => setCollapsed(!collapsed)}
           sidebarCollapsed={collapsed}
+          onLogout={handleLogout}
         />
         <main className="dash-main-scroll">
           <div className="dash-content-inner">

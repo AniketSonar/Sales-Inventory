@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../layout/DashboardLayout';
 import { storeConfig } from '../../layout/dashboardConfigs';
-import { Package, CheckCircle2, Clock, RefreshCw, Boxes, Check, ArrowRight } from 'lucide-react';
+import { Package, CheckCircle2, Clock, RefreshCw, Boxes, Check, ArrowRight, Eye, Download } from 'lucide-react';
 import { useLiveSync } from '../../../utils/useLiveSync';
+import DocumentModal from '../../common/DocumentModal';
+import { buildSalesOrderPdf, downloadDocumentPdf } from '../../../utils/documentGenerator';
 
 export default function StoreDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [enquiries, setEnquiries] = useState([]);
   const [msg, setMsg] = useState('');
+  const [previewModal, setPreviewModal] = useState({ isOpen: false, type: 'order', data: null });
 
   const fetchOrders = async () => {
     try {
@@ -70,7 +73,7 @@ export default function StoreDashboard() {
 
       <div className="dash-card">
         <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Package size={19} color="#2563eb" /> Store Orders Queue
+          <Package size={19} color="#18476c" /> Store Orders Queue
         </h3>
         <div className="dash-table-wrapper">
           <table className="dash-table">
@@ -96,9 +99,49 @@ export default function StoreDashboard() {
                 enquiries.map(enq => (
                   <tr key={enq.id}>
                     <td>
-                      <span className="data-code-pill" style={{ color: '#4f46e5', fontWeight: 700 }}>
+                      <span className="data-code-pill" style={{ color: '#18476c', fontWeight: 700 }}>
                         {enq.order_no}
                       </span>
+                      <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewModal({ isOpen: true, type: 'order', data: enq })}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                            padding: '2px 6px',
+                            background: '#fffbeb',
+                            border: '1px solid #fde68a',
+                            borderRadius: '4px',
+                            fontSize: '0.7rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            color: '#b45309'
+                          }}
+                          title="View Sales Order Pick-List"
+                        >
+                          <Eye size={10} color="#d97706" /> View SO
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => downloadDocumentPdf(buildSalesOrderPdf(enq), `SalesOrder-${enq.order_no}.pdf`)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            padding: '2px 5px',
+                            background: '#fffbeb',
+                            border: '1px solid #fde68a',
+                            borderRadius: '4px',
+                            fontSize: '0.7rem',
+                            cursor: 'pointer',
+                            color: '#b45309'
+                          }}
+                          title="Download Sales Order PDF"
+                        >
+                          <Download size={10} />
+                        </button>
+                      </div>
                     </td>
                     <td>
                       <strong style={{ color: '#0f172a', display: 'block', fontSize: '0.88rem' }}>{enq.customer_name}</strong>
@@ -143,6 +186,14 @@ export default function StoreDashboard() {
           </table>
         </div>
       </div>
+
+      {/* Dynamic Document Preview Modal */}
+      <DocumentModal
+        isOpen={previewModal.isOpen}
+        type={previewModal.type}
+        data={previewModal.data}
+        onClose={() => setPreviewModal({ isOpen: false, type: 'order', data: null })}
+      />
     </DashboardLayout>
   );
 }

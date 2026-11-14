@@ -21,14 +21,14 @@
 }
 
 .brand-icon {
-  background: #eff6ff;
+  background: #edf4f9;
   padding: 0.5rem;
   border-radius: 8px;
-  border: 1px solid #bfdbfe;
+  border: 1px solid #cbdce8;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #2563eb;
+  color: #18476c;
 }
 
 .brand-text {
@@ -85,13 +85,13 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
+  background: #edf4f9;
+  border: 1px solid #cbdce8;
   padding: 0.45rem 1.1rem;
   border-radius: 999px;
   font-size: 0.85rem;
   font-weight: 600;
-  color: #1d4ed8;
+  color: #18476c;
   margin-bottom: 1.5rem;
 }
 
@@ -105,7 +105,7 @@
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 50%, #4f46e5 100%);
+  background: linear-gradient(135deg, #18476c 0%, #123755 60%, #0f172a 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -128,7 +128,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: #2563eb;
+  background: #18476c;
   color: white;
   padding: 0.85rem 1.7rem;
   border-radius: 8px;
@@ -136,12 +136,12 @@
   font-weight: 700;
   border: none;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+  box-shadow: 0 4px 14px rgba(24, 71, 108, 0.25);
   transition: transform 0.15s, background 0.15s;
 }
 
 .btn-primary:hover {
-  background: #1d4ed8;
+  background: #123755;
   transform: translateY(-2px);
 }
 
@@ -191,8 +191,8 @@
 
 .feature-card:hover {
   transform: translateY(-4px);
-  border-color: #bfdbfe;
-  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.08);
+  border-color: #cbdce8;
+  box-shadow: 0 8px 18px rgba(24, 71, 108, 0.12);
 }
 
 .f-icon {
@@ -205,10 +205,10 @@
   margin-bottom: 1.25rem;
 }
 
-.bg-blue { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
-.bg-amber { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
-.bg-cyan { background: #f0fdf4; color: #059669; border: 1px solid #bbf7d0; }
-.bg-emerald { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+.bg-blue { background: #edf4f9; color: #18476c; border: 1px solid #cbdce8; }
+.bg-amber { background: #f8fafc; color: #334155; border: 1px solid #cbd5e1; }
+.bg-cyan { background: #edf4f9; color: #18476c; border: 1px solid #cbdce8; }
+.bg-emerald { background: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; }
 
 .feature-card h3 {
   font-size: 1.15rem;
@@ -240,7 +240,7 @@
 .step-num {
   font-size: 0.8rem;
   font-weight: 800;
-  color: #2563eb;
+  color: #18476c;
 }
 
 .step-card h4 {

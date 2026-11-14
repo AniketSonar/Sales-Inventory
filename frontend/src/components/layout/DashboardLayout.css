@@ -3,7 +3,9 @@
 ============================================================ */
 .dash-app-shell {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
   background-color: #f8fafc;
   color: #0f172a;
 }
@@ -11,7 +13,7 @@
 /* SIDEBAR */
 .dash-sidebar {
   width: 260px;
-  min-height: 100vh;
+  height: 100vh;
   background: #ffffff;
   border-right: 1px solid #e2e8f0;
   display: flex;
@@ -21,6 +23,8 @@
   top: 0;
   z-index: 50;
   box-shadow: 1px 0 3px rgba(0, 0, 0, 0.02);
+  flex-shrink: 0;
+  overflow-y: auto;
 }
 
 .dash-app-shell.sidebar-collapsed .dash-sidebar {
@@ -39,13 +43,13 @@
   width: 42px;
   height: 42px;
   border-radius: 10px;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
+  background: #edf4f9;
+  border: 1px solid #cbdce8;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: #2563eb;
+  color: #18476c;
 }
 
 .dash-brand-text h3 {
@@ -59,7 +63,7 @@
 .dash-brand-text span {
   font-size: 0.68rem;
   letter-spacing: 0.06em;
-  color: #2563eb;
+  color: #18476c;
   font-weight: 700;
   text-transform: uppercase;
 }
@@ -104,9 +108,9 @@
 }
 
 .dash-nav-item.is-active {
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  color: #1d4ed8;
+  background: #edf4f9;
+  border: 1px solid #cbdce8;
+  color: #18476c;
   font-weight: 700;
 }
 
@@ -118,16 +122,16 @@
 }
 
 .dash-nav-item.is-active .dash-nav-icon {
-  color: #2563eb;
+  color: #18476c;
 }
 
 .active-dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #2563eb;
+  background: #18476c;
   margin-left: auto;
-  box-shadow: 0 0 6px rgba(37, 99, 235, 0.45);
+  box-shadow: 0 0 6px rgba(24, 71, 108, 0.45);
 }
 
 .dash-sidebar-footer {
@@ -162,7 +166,9 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  height: 100vh;
   min-width: 0;
+  overflow: hidden;
   background-color: #f8fafc;
 }
 
@@ -177,6 +183,7 @@
   top: 0;
   z-index: 40;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  flex-shrink: 0;
 }
 
 .topbar-left {
@@ -214,7 +221,7 @@
 
 .bc-dept {
   font-weight: 700;
-  color: #2563eb;
+  color: #18476c;
 }
 
 .bc-sep {
@@ -236,9 +243,9 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  color: #1d4ed8;
+  background: #edf4f9;
+  border: 1px solid #cbdce8;
+  color: #18476c;
   padding: 5px 12px;
   border-radius: 999px;
   font-size: 0.75rem;
@@ -259,10 +266,34 @@
   font-weight: 600;
 }
 
+.topbar-logout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.topbar-logout-btn:hover {
+  background: #fee2e2;
+  border-color: #f87171;
+  color: #b91c1c;
+  transform: translateY(-1px);
+}
+
 .dash-main-scroll {
   flex: 1;
   padding: 28px;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .dash-content-inner {

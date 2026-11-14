@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Quotation</title>
+<style>
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+  * {
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  body {
+    background-color: #f5f5f5;
+    margin: 0;
+    padding: 20px;
+    color: #1a1a1a;
+  }
+  .page-container {
+    max-width: 800px;
+    margin: 0 auto;
+    background: #ffffff;
+    padding: 35px 40px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    border: 1px solid #e0e0e0;
+  }
+  .header-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+  }
+  .header-table td {
+    vertical-align: top;
+  }
+  .company-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #111111;
+    letter-spacing: -0.5px;
+    text-transform: uppercase;
+  }
+  .doc-title {
+    font-size: 28px;
+    font-weight: 800;
+    color: #222222;
+    text-align: right;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .company-meta {
+    font-size: 13px;
+    color: #555555;
+    line-height: 1.5;
+    margin-top: 5px;
+  }
+  .meta-box-table {
+    width: 280px;
+    margin-left: auto;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-top: 10px;
+  }
+  .meta-box-table th {
+    background-color: #2c2c2c;
+    color: #ffffff;
+    padding: 6px 10px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 1px solid #2c2c2c;
+  }
+  .meta-box-table td {
+    border: 1px solid #d0d0d0;
+    padding: 6px 10px;
+    color: #222;
+    background-color: #fafafa;
+  }
+  .parties-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    border: 1px solid #d0d0d0;
+  }
+  .parties-table th {
+    background-color: #eeeeee;
+    color: #222222;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 7px 12px;
+    text-align: left;
+    border-bottom: 1px solid #d0d0d0;
+  }
+  .parties-table td {
+    padding: 10px 12px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: #333333;
+    width: 50%;
+    vertical-align: top;
+  }
+  .parties-table td:first-child {
+    border-right: 1px solid #d0d0d0;
+  }
+  .section-box {
+    margin-bottom: 20px;
+    border: 1px solid #d0d0d0;
+  }
+  .section-header {
+    background-color: #eeeeee;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #222222;
+    border-bottom: 1px solid #d0d0d0;
+  }
+  .section-body {
+    padding: 8px 12px;
+    font-size: 12.5px;
+    color: #444444;
+    min-height: 38px;
+  }
+  .items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 0;
+    border: 1px solid #2c2c2c;
+  }
+  .items-table th {
+    background-color: #2c2c2c;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 9px 10px;
+    border: 1px solid #2c2c2c;
+  }
+  .items-table td {
+    border: 1px solid #e0e0e0;
+    padding: 8px 10px;
+    font-size: 12px;
+    color: #222222;
+  }
+  .items-table tr:nth-child(even) td {
+    background-color: #f9f9f9;
+  }
+  .text-center { text-align: center; }
+  .text-right { text-align: right; }
+  .text-left { text-align: left; }
+
+  .totals-wrapper {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 20px;
+  }
+  .totals-table {
+    width: 45%;
+    border-collapse: collapse;
+    border: 1px solid #d0d0d0;
+    border-top: none;
+    font-size: 12px;
+  }
+  .totals-table td {
+    padding: 7px 12px;
+    border: 1px solid #e0e0e0;
+  }
+  .totals-table .label {
+    font-weight: 600;
+    color: #444;
+    text-align: right;
+    background-color: #fafafa;
+    width: 55%;
+  }
+  .totals-table .amount {
+    text-align: right;
+    font-weight: 600;
+    color: #111;
+  }
+  .totals-table .grand-total td {
+    background-color: #333333;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 700;
+    border-color: #333333;
+  }
+
+  .footer-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+    gap: 20px;
+  }
+  .terms-box {
+    flex: 1;
+    border: 1px solid #d0d0d0;
+  }
+  .signature-box {
+    width: 250px;
+    border: 1px solid #d0d0d0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .signature-line {
+    padding: 35px 12px 10px 12px;
+    text-align: center;
+    font-size: 12px;
+    color: #555;
+    border-top: 1px dashed #bbb;
+    margin: 25px 15px 10px 15px;
+  }
+
+  /* Control buttons for modification */
+  .toolbar {
+    max-width: 800px;
+    margin: 0 auto 15px auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #333;
+    padding: 10px 15px;
+    border-radius: 6px;
+    color: #fff;
+  }
+  .toolbar button {
+    background: #ffffff;
+    color: #111;
+    border: none;
+    padding: 7px 14px;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background 0.2s;
+  }
+  .toolbar button:hover {
+    background: #e0e0e0;
+  }
+  .btn-primary {
+    background: #4f46e5 !important;
+    color: #fff !important;
+  }
+  .btn-primary:hover {
+    background: #4338ca !important;
+  }
+  [contenteditable="true"] {
+    outline: none;
+    transition: background 0.15s;
+    border-radius: 2px;
+  }
+  [contenteditable="true"]:hover {
+    background-color: rgba(0,0,0,0.03);
+  }
+  [contenteditable="true"]:focus {
+    background-color: rgba(66, 153, 225, 0.08);
+    box-shadow: 0 0 0 1px #888;
+  }
+  .row-del-btn {
+    color: #e53e3e;
+    cursor: pointer;
+    font-weight: bold;
+    display: inline-block;
+    padding: 0 4px;
+  }
+
+  @media print {
+    body {
+      background-color: #ffffff;
+      padding: 0;
+    }
+    .page-container {
+      box-shadow: none;
+      border: none;
+      padding: 0;
+      max-width: 100%;
+    }
+    .toolbar, .row-del-btn, .add-row-btn {
+      display: none !important;
+    }
+    [contenteditable="true"]:focus {
+      background-color: transparent !important;
+      box-shadow: none !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <div style="font-size: 13px;">
+    <strong>Tip:</strong> You can edit any text directly by clicking on it.
+  </div>
+  <div style="display: flex; gap: 8px;">
+    <button type="button" onclick="addNewRow()">+ Add Item</button>
+    <button type="button" onclick="calculateTotals()">Recalculate Totals</button>
+    <button type="button" class="btn-primary" onclick="window.print()">Print / Export PDF</button>
+  </div>
+</div>
+
+<div class="page-container">
+  <!-- Header -->
+  <table class="header-table">
+    <tr>
+      <td style="width: 55%;">
+        <div class="company-title" contenteditable="true">COMPANY NAME</div>
+        <div class="company-meta" contenteditable="true">
+          <div><strong>Address:</strong> 123 Business Boulevard, Industrial Area, Phase II</div>
+          <div><strong>Phone:</strong> +91 98765 43210</div>
+          <div><strong>Email:</strong> sales@company.com</div>
+        </div>
+      </td>
+      <td style="width: 45%;">
+        <div class="doc-title">QUOTATION</div>
+        <table class="meta-box-table">
+          <tr>
+            <th>QUOTE #</th>
+            <th>DATE</th>
+          </tr>
+          <tr>
+            <td contenteditable="true">QT-2026-001</td>
+            <td contenteditable="true">14/11/2026</td>
+          </tr>
+          <tr>
+            <th>CUSTOMER ID</th>
+            <th>VALID UNTIL</th>
+          </tr>
+          <tr>
+            <td contenteditable="true">CUST-1042</td>
+            <td contenteditable="true">30/11/2026</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Sender and Receiver Details -->
+  <table class="parties-table">
+    <tr>
+      <th>SENDER DETAILS (OUR COMPANY)</th>
+      <th>RECEIVER / CUSTOMER INFO</th>
+    </tr>
+    <tr>
+      <td contenteditable="true">
+        <div><strong>Sender Name:</strong> Authorized Signatory</div>
+        <div><strong>Designation:</strong> Sales & Marketing Manager</div>
+        <div><strong>Company:</strong> Company Name</div>
+        <div><strong>Phone:</strong> +91 98765 43210</div>
+        <div><strong>Email:</strong> sales@company.com</div>
+      </td>
+      <td contenteditable="true">
+        <div><strong>Receiver Name:</strong> Mr. Customer Name</div>
+        <div><strong>Company / Entity:</strong> Client Organization Pvt Ltd</div>
+        <div><strong>Address:</strong> 456 Client Plaza, Main Road, City</div>
+        <div><strong>Phone No.:</strong> +91 91234 56789</div>
+        <div><strong>Email Id:</strong> client@example.com</div>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Description of Work -->
+  <div class="section-box">
+    <div class="section-header">DESCRIPTION OF WORK</div>
+    <div class="section-body" contenteditable="true">
+      Supply of inventory items, technical support hours, and materials as per requirement specifications.
+    </div>
+  </div>
+
+  <!-- Items Table -->
+  <table class="items-table" id="itemsTable">
+    <thead>
+      <tr>
+        <th style="width: 8%;" class="text-center">S.NO.</th>
+        <th style="width: 40%;" class="text-left">ITEMS / DESCRIPTION</th>
+        <th style="width: 10%;" class="text-center">QTY</th>
+        <th style="width: 14%;" class="text-center">UNIT</th>
+        <th style="width: 14%;" class="text-right">PRICE/UNIT</th>
+        <th style="width: 14%;" class="text-right">AMOUNT (₹)</th>
+      </tr>
+    </thead>
+    <tbody id="itemsBody">
+      <tr>
+        <td class="text-center" contenteditable="true">1</td>
+        <td contenteditable="true">Item 1 - Consulting / Support</td>
+        <td class="text-center qty-cell" contenteditable="true" oninput="calculateTotals()">1</td>
+        <td class="text-center" contenteditable="true">Hour</td>
+        <td class="text-right rate-cell" contenteditable="true" oninput="calculateTotals()">763.00</td>
+        <td class="text-right amount-cell" contenteditable="true">763.00</td>
+      </tr>
+      <tr>
+        <td class="text-center" contenteditable="true">2</td>
+        <td contenteditable="true">Item 2 - Raw Materials</td>
+        <td class="text-center qty-cell" contenteditable="true" oninput="calculateTotals()">1</td>
+        <td class="text-center" contenteditable="true">KG</td>
+        <td class="text-right rate-cell" contenteditable="true" oninput="calculateTotals()">780.00</td>
+        <td class="text-right amount-cell" contenteditable="true">780.00</td>
+      </tr>
+      <tr>
+        <td class="text-center" contenteditable="true">3</td>
+        <td contenteditable="true">Item 3 - Component Stock</td>
+        <td class="text-center qty-cell" contenteditable="true" oninput="calculateTotals()">5</td>
+        <td class="text-center" contenteditable="true">KG</td>
+        <td class="text-right rate-cell" contenteditable="true" oninput="calculateTotals()">667.00</td>
+        <td class="text-right amount-cell" contenteditable="true">3,335.00</td>
+      </tr>
+      <tr>
+        <td class="text-center" contenteditable="true">4</td>
+        <td contenteditable="true">Item 4 - Technical Installation</td>
+        <td class="text-center qty-cell" contenteditable="true" oninput="calculateTotals()">4</td>
+        <td class="text-center" contenteditable="true">Hour</td>
+        <td class="text-right rate-cell" contenteditable="true" oninput="calculateTotals()">778.00</td>
+        <td class="text-right amount-cell" contenteditable="true">3,112.00</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Totals Section -->
+  <div class="totals-wrapper">
+    <table class="totals-table">
+      <tr>
+        <td class="label">SUBTOTAL</td>
+        <td class="amount" id="subtotalVal" contenteditable="true">7,990.00</td>
+      </tr>
+      <tr>
+        <td class="label">SGST @ 9%</td>
+        <td class="amount" id="sgstVal" contenteditable="true">719.10</td>
+      </tr>
+      <tr>
+        <td class="label">CGST @ 9%</td>
+        <td class="amount" id="cgstVal" contenteditable="true">719.10</td>
+      </tr>
+      <tr class="grand-total">
+        <td class="label" style="color: #fff;">TOTAL</td>
+        <td class="amount" id="totalVal" contenteditable="true">9,428.20</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Terms & Signature -->
+  <div class="footer-row">
+    <div class="terms-box">
+      <div class="section-header">TERMS &amp; CONDITIONS</div>
+      <div class="section-body" contenteditable="true" style="font-size: 11.5px; line-height: 1.5;">
+        1. Payment terms: 50% advance, balance upon delivery.<br>
+        2. Delivery timeline: within 7 business days from PO confirmation.<br>
+        3. This quotation is valid until the validity date specified above.<br>
+        4. Taxes are applicable as per prevailing statutory rates.
+      </div>
+    </div>
+    <div class="signature-box">
+      <div class="section-header" style="text-align: center;">AUTHORISED SIGNATURE</div>
+      <div class="signature-line" contenteditable="true">
+        Sender's Signature &amp; Seal<br>
+        <strong>Company Name</strong>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function addNewRow() {
+  const tbody = document.getElementById('itemsBody');
+  const count = tbody.children.length + 1;
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="text-center" contenteditable="true">${count}</td>
+    <td contenteditable="true">New Item / Service Description</td>
+    <td class="text-center qty-cell" contenteditable="true" oninput="calculateTotals()">1</td>
+    <td class="text-center" contenteditable="true">Unit</td>
+    <td class="text-right rate-cell" contenteditable="true" oninput="calculateTotals()">0.00</td>
+    <td class="text-right amount-cell" contenteditable="true">0.00</td>
+  `;
+  tbody.appendChild(tr);
+  calculateTotals();
+}
+
+function calculateTotals() {
+  const rows = document.querySelectorAll('#itemsBody tr');
+  let subtotal = 0;
+  rows.forEach(row => {
+    const qtyText = row.querySelector('.qty-cell')?.innerText.replace(/,/g, '') || "0";
+    const rateText = row.querySelector('.rate-cell')?.innerText.replace(/,/g, '') || "0";
+    const qty = parseFloat(qtyText) || 0;
+    const rate = parseFloat(rateText) || 0;
+    const amount = qty * rate;
+    const amountCell = row.querySelector('.amount-cell');
+    if (amountCell && (document.activeElement !== amountCell)) {
+      amountCell.innerText = amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    const rowAmt = parseFloat(amountCell?.innerText.replace(/,/g, '') || amount) || 0;
+    subtotal += rowAmt;
+  });
+
+  const sgst = subtotal * 0.09;
+  const cgst = subtotal * 0.09;
+  const total = subtotal + sgst + cgst;
+
+  document.getElementById('subtotalVal').innerText = subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  document.getElementById('sgstVal').innerText = sgst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  document.getElementById('cgstVal').innerText = cgst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  document.getElementById('totalVal').innerText = total.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+</script>
+
+</body>
+</html>

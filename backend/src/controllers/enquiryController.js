@@ -38,7 +38,7 @@ const getEnquiries = async (req, res) => {
 // Create new enquiry (Receptionist)
 const createEnquiry = async (req, res) => {
   try {
-    const { customer_name, contact_email, contact_phone, category, part_code, quantity, notes } = req.body;
+    const { customer_name, contact_email, contact_phone, category, part_code, quantity, notes, pdf_attachment, attachment_name } = req.body;
     if (!customer_name || !category || !part_code) {
       return res.status(400).json({ success: false, message: 'Customer name, category and part code required' });
     }
@@ -48,9 +48,9 @@ const createEnquiry = async (req, res) => {
     const qty = parseInt(quantity, 10) || 1;
 
     await db.runAsync(`
-      INSERT INTO enquiries (id, enquiry_no, customer_name, contact_email, contact_phone, category, part_code, quantity, notes, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [id, enquiry_no, customer_name, contact_email || '', contact_phone || '', category, part_code, qty, notes || '', 'Awaiting Purchase Pricing']);
+      INSERT INTO enquiries (id, enquiry_no, customer_name, contact_email, contact_phone, category, part_code, quantity, notes, status, pdf_attachment, attachment_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [id, enquiry_no, customer_name, contact_email || '', contact_phone || '', category, part_code, qty, notes || '', 'Awaiting Purchase Pricing', pdf_attachment || null, attachment_name || null]);
 
     res.status(201).json({ success: true, message: 'Enquiry created successfully', enquiry_no, id });
   } catch (err) {

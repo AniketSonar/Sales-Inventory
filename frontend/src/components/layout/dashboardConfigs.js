@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 export const adminConfig = {
-  brandSubtitle: 'B2B MANAGEMENT',
+  brandSubtitle: 'MANAGEMENT',
   roleLabel: 'System Admin',
   defaultName: 'System Administrator',
   menu: [

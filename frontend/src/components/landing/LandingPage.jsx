@@ -11,8 +11,8 @@ export default function LandingPage() {
       {/* Navbar */}
       <nav className="landing-nav">
         <div className="nav-brand">
-          <div className="brand-icon"><Layers size={22} color="#38bdf8" /></div>
-          <span className="brand-text">NexFlow B2B</span>
+          <div className="brand-icon"><Layers size={22} color="#18476c" /></div>
+          <span className="brand-text">NexFlow</span>
         </div>
         <div className="nav-links">
           <a href="#features">Features</a>
@@ -26,8 +26,8 @@ export default function LandingPage() {
       {/* Hero Section */}
       <header className="hero-banner">
         <div className="hero-badge">
-          <ShieldCheck size={16} color="#38bdf8" />
-          <span>Enterprise B2B Sales, Procurement & Logistics ERP</span>
+          <ShieldCheck size={16} color="#18476c" />
+          <span>Sales, Procurement & Logistics ERP</span>
         </div>
         <h1 className="hero-title">
           Unified Order Fulfilment from <span className="gradient-text">Enquiry to Delivery</span>
@@ -96,7 +96,7 @@ export default function LandingPage() {
       </section>
 
       <footer className="landing-footer">
-        <p>© 2026 NexFlow B2B Systems. Secure Enterprise Order Fulfilment.</p>
+        <p>© 2026 NexFlow Systems. Secure Order Fulfilment.</p>
       </footer>
     </div>
   );
