@@ -1,23 +1,23 @@
 import { jsPDF } from 'jspdf';
 
 export const COMPANY_DETAILS = {
-  name: "QIRO TECH INNOVATION PVT. LTD.",
-  tagline: "Innovation Pvt. Ltd.",
-  address: "Office No.602, 6th Floor, The Business Advantedge, Near Laxmi Chowk, Marunji Road, Hinjawadi Phase I, Hinjawadi",
+  name: "NEXFLOW SYSTEMS PVT. LTD.",
+  tagline: "Industrial Equipment & Sales Solutions",
+  address: "Plot 42, Tech Park, MIDC Industrial Area, Phase II",
   cityStatePin: "Pune, Maharashtra - 411057",
-  phone: "+918623823997",
-  email: "Commercial@qirotec.com",
-  gstin: "27AABCQ2268A1ZR",
-  pan: "AABCQ2268A"
+  phone: "+91 98765 43210",
+  email: "sales@nexflowsystems.com",
+  gstin: "27AABCU9603R1ZM",
+  pan: "AABCU9603R"
 };
 
 export const BANK_DETAILS = {
-  bankName: "IDFC FIRST",
-  accountName: "QIRO TECH INNOVATION PRIVATE LIMITED",
-  accountNumber: "86690868447",
-  ifsc: "IDFB0043491",
-  swift: "IDFBINBBMUM",
-  branch: "CHHATRAPATI SAMBHAJINAGAR BRANCH"
+  bankName: "HDFC BANK LTD",
+  accountName: "NEXFLOW SYSTEMS PVT. LTD.",
+  accountNumber: "50200084729183",
+  ifsc: "HDFC0001234",
+  swift: "HDFCINBB",
+  branch: "Hinjawadi Phase 1, Pune"
 };
 
 const fmtCurrency = (n) => `Rs. ${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -44,7 +44,7 @@ export function buildQuotationPdf(enq) {
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
-  doc.text('Q', M + 28, 65, { align: 'center' });
+  doc.text('N', M + 28, 65, { align: 'center' });
 
   // Company name
   doc.setTextColor(...teal);
@@ -80,17 +80,17 @@ export function buildQuotationPdf(enq) {
   doc.setTextColor(...dark);
   doc.text('Quotation for:', M, y);
   doc.setFontSize(10);
-  doc.text(enq.customer_name || 'Valued Customer', M, y + 14);
+  doc.text(enq.contact_person || enq.customer_name || 'Valued Customer', M, y + 14);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
   doc.setTextColor(...grey);
   doc.text(enq.customer_address || 'Pune, Maharashtra', M, y + 26);
 
-  // Right: Company name + date + number
+  // Right: Client company + date + number
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
   doc.setTextColor(...teal);
-  doc.text(COMPANY_DETAILS.name, W - M, y, { align: 'right' });
+  doc.text(enq.customer_name || 'Client Enterprise', W - M, y, { align: 'right' });
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
   doc.setTextColor(...dark);
@@ -448,7 +448,7 @@ export function buildInvoicePdf(enq) {
   doc.circle(M + 20, 55, 14, 'F');
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(10);
-  doc.text('Q', M + 20, 60, { align: 'center' });
+  doc.text('N', M + 20, 60, { align: 'center' });
 
   // Address lines
   doc.setFont('helvetica', 'normal');
@@ -501,7 +501,7 @@ export function buildInvoicePdf(enq) {
   const rLabels = ['Invoice Date :', 'Invoice No :', 'State Name :', 'State Code :', 'Place of Supply :'];
   const rVals = [
     invoiceDate,
-    enq.invoice_no || `QTIPL/${new Date().getFullYear()}-27/0001`,
+    enq.invoice_no || `NXFL/${new Date().getFullYear()}-27/0001`,
     enq.state_name || 'Maharashtra',
     enq.state_code || 'MH',
     enq.place_of_supply || 'Maharashtra (27)'
