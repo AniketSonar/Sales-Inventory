@@ -1,6 +1,6 @@
 import React from 'react';
-import { X, Download, ExternalLink, Printer, FileText, CheckCircle2, Building, ShieldCheck } from 'lucide-react';
-import { COMPANY_DETAILS, BANK_DETAILS, buildQuotationPdf, buildInvoicePdf, buildSalesOrderPdf, previewDocumentPdf, downloadDocumentPdf } from '../../utils/documentGenerator';
+import { X, Download, ExternalLink, Printer, FileText, CheckCircle2, Building, ShieldCheck, Truck } from 'lucide-react';
+import { COMPANY_DETAILS, BANK_DETAILS, buildQuotationPdf, buildInvoicePdf, buildSalesOrderPdf, buildDeliveryChallanPdf, previewDocumentPdf, downloadDocumentPdf } from '../../utils/documentGenerator';
 
 export default function DocumentModal({ isOpen, onClose, type = 'quotation', data }) {
   if (!isOpen || !data) return null;
@@ -8,18 +8,23 @@ export default function DocumentModal({ isOpen, onClose, type = 'quotation', dat
   const isQuotation = type === 'quotation';
   const isOrder = type === 'order' || type === 'sales_order' || type === 'po';
   const isInvoice = type === 'invoice';
+  const isChallan = type === 'challan';
 
   const docTitle = isQuotation 
     ? 'OFFICIAL QUOTATION' 
     : isOrder 
       ? 'SALES ORDER CONFIRMATION' 
-      : 'TAX INVOICE';
+      : isChallan
+        ? 'DELIVERY CHALLAN'
+        : 'TAX INVOICE';
 
   const docNumber = isQuotation 
     ? (data.quotation_no || `QT-${new Date().getFullYear()}-001`)
     : isOrder
       ? (data.order_no || `SO-${new Date().getFullYear()}-001`)
-      : (data.invoice_no || `INV-${new Date().getFullYear()}-001`);
+      : isChallan
+        ? (data.challan_no || `DC-${new Date().getFullYear()}-001`)
+        : (data.invoice_no || `INV-${new Date().getFullYear()}-001`);
 
   const qty = Number(data.quantity || 1);
   const unitPrice = Number(data.selling_price || (data.supplier_cost ? data.supplier_cost * 1.25 : 1000));
@@ -36,12 +41,13 @@ export default function DocumentModal({ isOpen, onClose, type = 'quotation', dat
   const getDoc = () => {
     if (isQuotation) return buildQuotationPdf(data);
     if (isOrder) return buildSalesOrderPdf(data);
+    if (isChallan) return buildDeliveryChallanPdf(data);
     return buildInvoicePdf(data);
   };
 
   const handleDownload = () => {
     const doc = getDoc();
-    const prefix = isQuotation ? 'Quotation' : isOrder ? 'SalesOrder' : 'Invoice';
+    const prefix = isQuotation ? 'Quotation' : isOrder ? 'SalesOrder' : isChallan ? 'DeliveryChallan' : 'Invoice';
     downloadDocumentPdf(doc, `${prefix}-${docNumber}.pdf`);
   };
 

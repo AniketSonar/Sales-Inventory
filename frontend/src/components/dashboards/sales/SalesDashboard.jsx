@@ -21,26 +21,80 @@ import {
   Check,
   Paperclip,
   Eye,
-  Download
+  Download,
+  PhoneCall,
+  Calendar,
+  AlertCircle,
+  FileCheck,
+  PackageCheck,
+  History,
+  Navigation,
+  CheckSquare
 } from 'lucide-react';
 import { useLiveSync } from '../../../utils/useLiveSync';
+
+// WhatsApp URL helper
+const getWhatsAppUrl = (phone, message) => {
+  const cleanPhone = (phone || '').replace(/[^0-9]/g, '');
+  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+};
 import DocumentModal from '../../common/DocumentModal';
-import { buildQuotationPdf, buildInvoicePdf, buildSalesOrderPdf, downloadDocumentPdf } from '../../../utils/documentGenerator';
+import {
+  buildQuotationPdf,
+  buildInvoicePdf,
+  buildSalesOrderPdf,
+  buildDeliveryChallanPdf,
+  downloadDocumentPdf
+} from '../../../utils/documentGenerator';
 
 export default function SalesDashboard() {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('enquiries');
   const [enquiries, setEnquiries] = useState([]);
-  const [activeAction, setActiveAction] = useState(null); // { type: 'QUOTE' | 'PO' | 'DISPATCH', item }
+  const [msg, setMsg] = useState('');
+
+  // Active Action Modal state
+  const [activeAction, setActiveAction] = useState(null); // { type, item }
+
+  // Action form fields
+  // 1. Followup / Call Schedule
+  const [followupType, setFollowupType] = useState('Call');
+  const [scheduledAt, setScheduledAt] = useState('');
+  const [seriousness, setSeriousness] = useState('High');
+  const [followupNotes, setFollowupNotes] = useState('');
+
+  // 2. Verification & Forward to Purchase
+  const [verifyNotes, setVerifyNotes] = useState('');
+
+  // 3. Quotation
   const [sellingPrice, setSellingPrice] = useState('');
   const [discount, setDiscount] = useState('0');
+
+  // 4. Customer PO & Store Handover
   const [poNumber, setPoNumber] = useState('');
-  const [invoiceNo, setInvoiceNo] = useState('');
-  const [transporter, setTransporter] = useState('Roadways Cargo Express');
+
+  // 5. Stock Inspection
+  const [inspectionNotes, setInspectionNotes] = useState('');
+
+  // 6. Transport & Delivery Challan
+  const [transportMode, setTransportMode] = useState('Road'); // Road | Air | Water
+  const [transporter, setTransporter] = useState('Roadways Express Cargo');
   const [trackingNo, setTrackingNo] = useState('');
-  const [msg, setMsg] = useState('');
+  const [invoiceNo, setInvoiceNo] = useState('');
+  const [challanNo, setChallanNo] = useState('');
+
+  // 7. Delivery Confirmation
+  const [deliveryNotes, setDeliveryNotes] = useState('');
+
+  // Success popup after Quotation / Invoice generated (for WhatsApp share in modal)
+  const [successWhatsApp, setSuccessWhatsApp] = useState(null); // { type, phone, message }
+
+  // Document Preview Modal
   const [previewModal, setPreviewModal] = useState({ isOpen: false, type: 'quotation', data: null });
 
-  // Compartment filter: 'all' | 'mechanical' | 'electrical' | 'computer'
+  // Timeline / History Modal
+  const [timelineModal, setTimelineModal] = useState({ isOpen: false, item: null, history: [], followups: [], loading: false });
+
+  // Search & Compartment Filter
   const [selectedCompartment, setSelectedCompartment] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -52,13 +106,94 @@ export default function SalesDashboard() {
         setEnquiries(data.data);
       }
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching enquiries:', err);
     }
   };
 
   useLiveSync(fetchEnquiries, 3000);
 
-  // 1. Issue Quotation
+  // Open Timeline Modal
+  const handleOpenTimeline = async (enq) => {
+    setTimelineModal({ isOpen: true, item: enq, history: [], followups: [], loading: true });
+    try {
+      const res = await fetch(`http://localhost:5000/api/enquiries/${enq.id}/timeline`);
+      const data = await res.json();
+      if (data.success) {
+        setTimelineModal({
+          isOpen: true,
+          item: enq,
+          history: data.data.history || [],
+          followups: data.data.followups || [],
+          loading: false
+        });
+      } else {
+        setTimelineModal(prev => ({ ...prev, loading: false }));
+      }
+    } catch (err) {
+      console.error(err);
+      setTimelineModal(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  // 1. Schedule Call / Meeting and Maintain Client Follow-ups
+  const handleScheduleFollowup = async (e) => {
+    e.preventDefault();
+    if (!activeAction?.item) return;
+
+    try {
+      const res = await fetch('http://localhost:5000/api/sales/followup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          enquiry_id: activeAction.item.id,
+          followup_type: followupType,
+          scheduled_at: scheduledAt,
+          seriousness,
+          notes: followupNotes,
+          performed_by: 'Sales Executive'
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMsg(`Client follow-up & schedule recorded for ${activeAction.item.enquiry_no}!`);
+        setActiveAction(null);
+        fetchEnquiries();
+        setTimeout(() => setMsg(''), 4000);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // 2. Verify Client Seriousness & Confirm Requirements -> Forward to Purchase
+  const handleVerifyAndForward = async (e) => {
+    e.preventDefault();
+    if (!activeAction?.item) return;
+
+    try {
+      const res = await fetch('http://localhost:5000/api/sales/verify-forward', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          enquiry_id: activeAction.item.id,
+          seriousness,
+          verification_notes: verifyNotes,
+          performed_by: 'Sales Executive'
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMsg(`Enquiry ${activeAction.item.enquiry_no} verified and forwarded to Purchase Department!`);
+        setActiveAction(null);
+        fetchEnquiries();
+        setTimeout(() => setMsg(''), 4000);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // 3. Issue Quotation to Client
   const handleIssueQuotation = async (e) => {
     e.preventDefault();
     if (!activeAction?.item) return;
@@ -70,12 +205,22 @@ export default function SalesDashboard() {
         body: JSON.stringify({
           enquiry_id: activeAction.item.id,
           selling_price: sellingPrice,
-          discount_percent: discount
+          discount_percent: discount,
+          performed_by: 'Sales Executive'
         })
       });
       const data = await res.json();
       if (data.success) {
-        setMsg(`Quotation ${data.quotation_no} created and recorded in DB!`);
+        setMsg(`Quotation ${data.quotation_no} generated and sent to client!`);
+        const enq = activeAction.item;
+        if (enq.contact_phone) {
+          setSuccessWhatsApp({
+            type: 'quotation',
+            phone: enq.contact_phone,
+            message: `Dear ${enq.customer_name}, please find your Quotation *${data.quotation_no}* from NexFlow Systems. Total Amount: ₹${Number(sellingPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}. Please review and confirm at your earliest convenience. Contact: sales@nexflowsystems.com`,
+            label: `Quotation ${data.quotation_no}`
+          });
+        }
         setActiveAction(null);
         fetchEnquiries();
         setTimeout(() => setMsg(''), 4000);
@@ -85,7 +230,7 @@ export default function SalesDashboard() {
     }
   };
 
-  // 2. Convert PO to Sales Order
+  // 4. Confirm Customer PO & Forward to Store
   const handleConvertPO = async (e) => {
     e.preventDefault();
     if (!activeAction?.item) return;
@@ -96,12 +241,13 @@ export default function SalesDashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           enquiry_id: activeAction.item.id,
-          po_number: poNumber
+          po_number: poNumber,
+          performed_by: 'Sales Executive'
         })
       });
       const data = await res.json();
       if (data.success) {
-        setMsg(`Sales Order ${data.order_no} created in DB! Forwarded to Store for Packing.`);
+        setMsg(`Sales Order ${data.order_no} created and approved! Forwarded to Store for Packing.`);
         setActiveAction(null);
         fetchEnquiries();
         setTimeout(() => setMsg(''), 4000);
@@ -111,7 +257,34 @@ export default function SalesDashboard() {
     }
   };
 
-  // 3. Invoice & Dispatch
+  // 5. Verify Stock Readiness
+  const handleInspectStock = async (e) => {
+    e.preventDefault();
+    if (!activeAction?.item) return;
+
+    try {
+      const res = await fetch('http://localhost:5000/api/sales/inspect-stock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          enquiry_id: activeAction.item.id,
+          inspection_notes: inspectionNotes || 'Stock quality, packaging and part quantities verified and approved by Sales.',
+          performed_by: 'Sales Executive'
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMsg(`Stock readiness verified and approved for transportation!`);
+        setActiveAction(null);
+        fetchEnquiries();
+        setTimeout(() => setMsg(''), 4000);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // 6. Arrange Transportation (Road/Air/Water) & Issue Delivery Challan
   const handleDispatch = async (e) => {
     e.preventDefault();
     if (!activeAction?.item) return;
@@ -124,12 +297,51 @@ export default function SalesDashboard() {
           enquiry_id: activeAction.item.id,
           invoice_no: invoiceNo,
           transporter,
-          tracking_no: trackingNo
+          tracking_no: trackingNo,
+          transport_mode: transportMode,
+          challan_no: challanNo,
+          performed_by: 'Sales Logistics Desk'
         })
       });
       const data = await res.json();
       if (data.success) {
-        setMsg(`Invoice ${data.invoice_no} issued & Transporter (${data.tracking_no}) logged! Order Closed.`);
+        setMsg(`Transportation arranged via ${data.transport_mode}! Delivery Challan ${data.challan_no} & Invoice ${data.invoice_no} issued.`);
+        const enq = activeAction.item;
+        if (enq.contact_phone) {
+          setSuccessWhatsApp({
+            type: 'invoice',
+            phone: enq.contact_phone,
+            message: `Dear ${enq.customer_name}, your Invoice *${data.invoice_no}* for Order *${enq.order_no}* has been generated by NexFlow Systems. Amount: ₹${Number(enq.quotation_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}. Transport: ${data.transport_mode} | Tracking: ${data.tracking_no || trackingNo}. Delivery Challan: ${data.challan_no}. Thank you for your business!`,
+            label: `Invoice ${data.invoice_no}`
+          });
+        }
+        setActiveAction(null);
+        fetchEnquiries();
+        setTimeout(() => setMsg(''), 5000);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // 7. Confirm Delivery
+  const handleConfirmDelivery = async (e) => {
+    e.preventDefault();
+    if (!activeAction?.item) return;
+
+    try {
+      const res = await fetch('http://localhost:5000/api/sales/deliver', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          enquiry_id: activeAction.item.id,
+          delivery_notes: deliveryNotes || 'Consignment delivered to client destination. Goods accepted in full.',
+          performed_by: 'Sales Executive'
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMsg(`Shipment delivered successfully! Order closed in database.`);
         setActiveAction(null);
         fetchEnquiries();
         setTimeout(() => setMsg(''), 4000);
@@ -141,17 +353,35 @@ export default function SalesDashboard() {
 
   const getStatusBadge = (status) => {
     if (!status) return <span className="status-badge badge-slate">Pending</span>;
-    if (status.includes('Dispatched') || status.includes('Closed')) {
-      return <span className="status-badge badge-emerald"><CheckCircle2 size={13} /> {status}</span>;
+    if (status.includes('Delivered')) {
+      return <span className="status-badge badge-emerald"><CheckCircle2 size={13} /> Delivered & Closed</span>;
     }
-    if (status.includes('Confirmed') || status.includes('Packed')) {
-      return <span className="status-badge badge-blue"><ShieldCheck size={13} /> {status}</span>;
+    if (status.includes('Transit') || status.includes('Dispatched')) {
+      return <span className="status-badge badge-blue"><Truck size={13} /> {status}</span>;
     }
-    if (status.includes('Pricing Received')) {
-      return <span className="status-badge badge-blue"><DollarSign size={13} /> {status}</span>;
+    if (status.includes('Stock Inspected')) {
+      return <span className="status-badge badge-emerald"><CheckSquare size={13} /> Stock Inspected</span>;
     }
-    if (status.includes('Awaiting')) {
-      return <span className="status-badge badge-amber"><Clock size={13} /> {status}</span>;
+    if (status.includes('Ready for Sales Inspection')) {
+      return <span className="status-badge badge-amber"><PackageCheck size={13} /> Store Packed - Inspect Stock</span>;
+    }
+    if (status.includes('Approved - Forwarded to Store')) {
+      return <span className="status-badge badge-blue"><FileCheck size={13} /> Store Handover</span>;
+    }
+    if (status.includes('Quotation Sent')) {
+      return <span className="status-badge badge-blue"><Send size={13} /> Quote Sent</span>;
+    }
+    if (status.includes('Cost Estimated')) {
+      return <span className="status-badge badge-emerald"><DollarSign size={13} /> Cost Received</span>;
+    }
+    if (status.includes('Forwarded to Purchase')) {
+      return <span className="status-badge badge-slate"><Clock size={13} /> At Purchase</span>;
+    }
+    if (status.includes('Follow-up')) {
+      return <span className="status-badge badge-amber"><PhoneCall size={13} /> Sales Follow-up</span>;
+    }
+    if (status.includes('New -')) {
+      return <span className="status-badge badge-amber" style={{ fontWeight: 700 }}><AlertCircle size={13} /> New Lead</span>;
     }
     return <span className="status-badge badge-slate">{status}</span>;
   };
@@ -165,10 +395,7 @@ export default function SalesDashboard() {
       shortTitle: 'Mechanical',
       description: 'Valves, actuators, industrial pumps, gearboxes, bearings, flanges & hardware',
       icon: Wrench,
-      matcher: (category) => {
-        const c = (category || '').toLowerCase();
-        return c.includes('mech');
-      }
+      matcher: (category) => (category || '').toLowerCase().includes('mech')
     },
     {
       id: 'electrical',
@@ -177,10 +404,7 @@ export default function SalesDashboard() {
       shortTitle: 'Electrical',
       description: 'Transformers, switchgear, relays, power distribution panels, cables & sensors',
       icon: Zap,
-      matcher: (category) => {
-        const c = (category || '').toLowerCase();
-        return c.includes('elect');
-      }
+      matcher: (category) => (category || '').toLowerCase().includes('elect')
     },
     {
       id: 'computer',
@@ -196,19 +420,27 @@ export default function SalesDashboard() {
     }
   ];
 
-  // Lifecycle stage filtering from sidebar activeTab
+  // Lifecycle stage filtering from navbar activeTab
   const lifecycleFilteredEnquiries = useMemo(() => {
     let list = enquiries;
 
-    if (activeTab === 'quotations') {
-      // Items pending quotation
-      list = list.filter(e => !e.quotation_no);
+    if (activeTab === 'enquiries') {
+      // 1. All new enquiries received directly from reception, scheduling follow-ups, seriousness verification
+      list = list.filter(e => 
+        e.status?.includes('New -') || 
+        e.status?.includes('Follow-up') || 
+        e.status?.includes('Verified - Forwarded') ||
+        !e.supplier_cost
+      );
+    } else if (activeTab === 'quotations') {
+      // 2. Cost quotes received from purchase -> quotation generation and client approval follow-up
+      list = list.filter(e => e.supplier_cost && !e.order_no);
     } else if (activeTab === 'customer-pos') {
-      // Items that have quotation awaiting PO confirmation or confirmed SO
-      list = list.filter(e => e.quotation_no);
-    } else if (activeTab === 'dispatch') {
-      // Items with confirmed order ready for dispatch or completed
-      list = list.filter(e => e.order_no);
+      // 3. Customer POs, orders, and forwarding approved enquiries to Store
+      list = list.filter(e => e.quotation_no && !e.dispatch_status?.includes('Delivered'));
+    } else if (activeTab === 'transport') {
+      // 4. Transportation (Road, Air, Water), Delivery Challan, and tracking until delivery
+      list = list.filter(e => e.order_no || e.store_status?.includes('Packed') || e.challan_no);
     }
 
     if (searchQuery.trim()) {
@@ -217,7 +449,8 @@ export default function SalesDashboard() {
         (e.enquiry_no && e.enquiry_no.toLowerCase().includes(q)) ||
         (e.customer_name && e.customer_name.toLowerCase().includes(q)) ||
         (e.part_code && e.part_code.toLowerCase().includes(q)) ||
-        (e.category && e.category.toLowerCase().includes(q))
+        (e.category && e.category.toLowerCase().includes(q)) ||
+        (e.challan_no && e.challan_no.toLowerCase().includes(q))
       );
     }
 
@@ -229,8 +462,6 @@ export default function SalesDashboard() {
     const mechanicalList = lifecycleFilteredEnquiries.filter(e => compartments[0].matcher(e.category));
     const electricalList = lifecycleFilteredEnquiries.filter(e => compartments[1].matcher(e.category));
     const computerList = lifecycleFilteredEnquiries.filter(e => compartments[2].matcher(e.category));
-    
-    // Catch-all for uncategorized
     const otherList = lifecycleFilteredEnquiries.filter(e =>
       !compartments[0].matcher(e.category) &&
       !compartments[1].matcher(e.category) &&
@@ -300,13 +531,13 @@ export default function SalesDashboard() {
           <table className="dash-table">
             <thead>
               <tr>
-                <th style={{ width: '130px' }}>Enquiry Ref</th>
-                <th>Customer</th>
+                <th style={{ width: '120px' }}>Enquiry Ref</th>
+                <th>Customer & Seriousness</th>
                 <th>Item / Part Code</th>
-                <th>Supplier Cost</th>
+                <th>Purchase Cost</th>
                 <th>Quotation Total</th>
-                <th>PO / Sales Order</th>
-                <th>Status</th>
+                <th>Order & Transport</th>
+                <th>Workflow Status</th>
                 <th style={{ textAlign: 'right', paddingRight: '20px' }}>Sales Actions</th>
               </tr>
             </thead>
@@ -314,7 +545,7 @@ export default function SalesDashboard() {
               {items.length === 0 ? (
                 <tr>
                   <td colSpan={8} style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
-                    No {compartmentInfo.name} requirements logged currently.
+                    No {compartmentInfo.name} requirements in this stage.
                   </td>
                 </tr>
               ) : (
@@ -322,10 +553,42 @@ export default function SalesDashboard() {
                   <tr key={enq.id}>
                     <td>
                       <span className="data-code-pill">{enq.enquiry_no}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenTimeline(enq)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                          marginTop: '4px',
+                          padding: '2px 6px',
+                          background: '#f8fafc',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '4px',
+                          fontSize: '0.68rem',
+                          color: '#18476c',
+                          cursor: 'pointer'
+                        }}
+                        title="View Full Handover Audit Trail"
+                      >
+                        <History size={11} /> Trail
+                      </button>
                     </td>
                     <td>
                       <strong style={{ color: '#0f172a', display: 'block', fontSize: '0.88rem' }}>{enq.customer_name}</strong>
                       <span style={{ fontSize: '0.74rem', color: '#64748b' }}>{enq.contact_email || enq.contact_phone || 'Direct Lead'}</span>
+                      <div style={{ marginTop: '3px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span className={`status-badge ${
+                          enq.client_seriousness === 'High' || enq.client_seriousness === 'Verified' ? 'badge-emerald' : 'badge-amber'
+                        }`} style={{ fontSize: '0.68rem', padding: '1px 6px' }}>
+                          Seriousness: {enq.client_seriousness || 'Pending'}
+                        </span>
+                        {enq.meeting_schedule && (
+                          <span style={{ fontSize: '0.68rem', color: '#0369a1', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                            <Calendar size={10} /> {enq.meeting_schedule}
+                          </span>
+                        )}
+                      </div>
                       {enq.pdf_attachment && (
                         <div style={{ marginTop: '3px' }}>
                           <a
@@ -346,7 +609,6 @@ export default function SalesDashboard() {
                               fontSize: '0.72rem',
                               fontWeight: 600
                             }}
-                            title="Download / View Attached PDF"
                           >
                             <Paperclip size={11} /> {enq.attachment_name || 'Attached PDF'}
                           </a>
@@ -362,16 +624,23 @@ export default function SalesDashboard() {
                     </td>
                     <td>
                       {enq.supplier_cost ? (
-                        <span style={{ color: '#18476c', fontWeight: 700, fontSize: '0.92rem' }}>₹{Number(enq.supplier_cost).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                        <div>
+                          <span style={{ color: '#18476c', fontWeight: 700, fontSize: '0.92rem' }}>
+                            ₹{Number(enq.supplier_cost).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </span>
+                          <div style={{ fontSize: '0.7rem', color: '#059669', fontWeight: 600 }}>
+                            {enq.availability || 'Available'} ({enq.lead_time_days || 3}d)
+                          </div>
+                        </div>
                       ) : (
-                        <span className="status-badge badge-amber" style={{ fontSize: '0.74rem' }}>Awaiting Cost</span>
+                        <span className="status-badge badge-slate" style={{ fontSize: '0.72rem' }}>Awaiting Cost</span>
                       )}
                     </td>
                     <td>
                       {enq.quotation_amount ? (
                         <div>
                           <strong style={{ color: '#18476c', fontSize: '0.92rem' }}>₹{Number(enq.quotation_amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
-                          <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 500 }}>{enq.quotation_no}</div>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{enq.quotation_no}</div>
                           <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
                             <button
                               type="button"
@@ -380,37 +649,56 @@ export default function SalesDashboard() {
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 gap: '3px',
-                                padding: '2px 7px',
+                                padding: '2px 6px',
                                 background: '#eff6ff',
                                 border: '1px solid #bfdbfe',
                                 borderRadius: '4px',
-                                fontSize: '0.72rem',
+                                fontSize: '0.7rem',
                                 fontWeight: 600,
                                 cursor: 'pointer',
                                 color: '#1e40af'
                               }}
-                              title="Preview Quotation Document"
                             >
-                              <Eye size={11} color="#2563eb" /> View
+                              <Eye size={10} color="#2563eb" /> View
                             </button>
                             <button
                               type="button"
                               onClick={() => downloadDocumentPdf(buildQuotationPdf(enq), `Quotation-${enq.quotation_no}.pdf`)}
                               style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                padding: '2px 6px',
+                                padding: '2px 5px',
                                 background: '#f8fafc',
                                 border: '1px solid #cbd5e1',
                                 borderRadius: '4px',
-                                fontSize: '0.72rem',
-                                cursor: 'pointer',
-                                color: '#475569'
+                                fontSize: '0.7rem',
+                                cursor: 'pointer'
                               }}
-                              title="Download Quotation PDF"
                             >
-                              <Download size={11} />
+                              <Download size={10} />
                             </button>
+                            {enq.contact_phone && (
+                              <a
+                                href={getWhatsAppUrl(enq.contact_phone, `Dear ${enq.customer_name}, please find your Quotation *${enq.quotation_no}* from NexFlow Systems. Total Amount: ₹${Number(enq.quotation_amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}. Please review and confirm at your earliest convenience. Contact: sales@nexflowsystems.com`)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Send Quotation on WhatsApp"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                  padding: '2px 6px',
+                                  background: '#dcfce7',
+                                  border: '1px solid #86efac',
+                                  borderRadius: '4px',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 600,
+                                  color: '#15803d',
+                                  textDecoration: 'none',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                💬 WA
+                              </a>
+                            )}
                           </div>
                         </div>
                       ) : (
@@ -420,94 +708,63 @@ export default function SalesDashboard() {
                     <td>
                       {enq.order_no ? (
                         <div>
-                          <span style={{ color: '#18476c', fontWeight: 700, fontSize: '0.88rem' }}>{enq.order_no}</span>
-                          <div style={{ fontSize: '0.74rem', color: '#64748b' }}>PO: {enq.po_number}</div>
-                          
-                          <div style={{ display: 'flex', gap: '4px', marginTop: '4px', flexWrap: 'wrap' }}>
-                            {/* Sales Order Document */}
-                            <button
-                              type="button"
-                              onClick={() => setPreviewModal({ isOpen: true, type: 'order', data: enq })}
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '3px',
-                                padding: '2px 7px',
-                                background: '#fffbeb',
-                                border: '1px solid #fde68a',
-                                borderRadius: '4px',
-                                fontSize: '0.72rem',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                color: '#b45309'
-                              }}
-                              title="View Confirmed Sales Order"
-                            >
-                              <Eye size={11} color="#d97706" /> View SO
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => downloadDocumentPdf(buildSalesOrderPdf(enq), `SalesOrder-${enq.order_no}.pdf`)}
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                padding: '2px 6px',
-                                background: '#fffbeb',
-                                border: '1px solid #fde68a',
-                                borderRadius: '4px',
-                                fontSize: '0.72rem',
-                                cursor: 'pointer',
-                                color: '#b45309'
-                              }}
-                              title="Download Sales Order PDF"
-                            >
-                              <Download size={11} />
-                            </button>
-
-                            {/* Tax Invoice Document */}
-                            {enq.invoice_no && (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => setPreviewModal({ isOpen: true, type: 'invoice', data: enq })}
+                          <span style={{ color: '#18476c', fontWeight: 700, fontSize: '0.85rem' }}>{enq.order_no}</span>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>PO: {enq.po_number}</div>
+                          {enq.transport_mode && (
+                            <div style={{ marginTop: '2px' }}>
+                              <span className="status-badge badge-blue" style={{ fontSize: '0.68rem', padding: '1px 5px' }}>
+                                Mode: {enq.transport_mode}
+                              </span>
+                            </div>
+                          )}
+                          {enq.challan_no && (
+                            <div style={{ display: 'flex', gap: '3px', marginTop: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
+                              <button
+                                type="button"
+                                onClick={() => setPreviewModal({ isOpen: true, type: 'challan', data: enq })}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '2px',
+                                  padding: '2px 6px',
+                                  background: '#f0fdf4',
+                                  border: '1px solid #bbf7d0',
+                                  borderRadius: '4px',
+                                  fontSize: '0.68rem',
+                                  color: '#15803d',
+                                  fontWeight: 600,
+                                  cursor: 'pointer'
+                                }}
+                                title="View Delivery Challan"
+                              >
+                                <Truck size={10} /> Challan: {enq.challan_no}
+                              </button>
+                              {enq.contact_phone && (
+                                <a
+                                  href={getWhatsAppUrl(enq.contact_phone, `Dear ${enq.customer_name}, your Invoice *${enq.invoice_no || ''}* for Order *${enq.order_no}* has been generated by NexFlow Systems. Amount: ₹${Number(enq.quotation_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}. Transport: ${enq.transport_mode || 'Road'} | Tracking: ${enq.tracking_no || 'N/A'}. Delivery Challan: ${enq.challan_no}. Thank you for your business!`)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title="Send Invoice on WhatsApp"
                                   style={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     gap: '3px',
-                                    padding: '2px 7px',
-                                    background: '#ecfdf5',
-                                    border: '1px solid #a7f3d0',
-                                    borderRadius: '4px',
-                                    fontSize: '0.72rem',
-                                    fontWeight: 600,
-                                    cursor: 'pointer',
-                                    color: '#047857'
-                                  }}
-                                  title="Preview Tax Invoice"
-                                >
-                                  <Eye size={11} color="#059669" /> Invoice
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => downloadDocumentPdf(buildInvoicePdf(enq), `Invoice-${enq.invoice_no}.pdf`)}
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
                                     padding: '2px 6px',
-                                    background: '#ecfdf5',
-                                    border: '1px solid #a7f3d0',
+                                    background: '#dcfce7',
+                                    border: '1px solid #86efac',
                                     borderRadius: '4px',
-                                    fontSize: '0.72rem',
-                                    cursor: 'pointer',
-                                    color: '#047857'
+                                    fontSize: '0.68rem',
+                                    fontWeight: 600,
+                                    color: '#15803d',
+                                    textDecoration: 'none',
+                                    cursor: 'pointer'
                                   }}
-                                  title="Download Invoice PDF"
                                 >
-                                  <Download size={11} />
-                                </button>
-                              </>
-                            )}
-                          </div>
+                                  💬 WA Invoice
+                                </a>
+                              )}
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <span style={{ color: '#94a3b8' }}>—</span>
@@ -517,51 +774,118 @@ export default function SalesDashboard() {
                       {getStatusBadge(enq.status)}
                     </td>
                     <td style={{ textAlign: 'right', paddingRight: '20px' }}>
-                      {/* Step 6: Issue Quotation */}
-                      {enq.supplier_cost && !enq.quotation_no && (
-                        <button
-                          className="dash-btn"
-                          onClick={() => {
-                            setActiveAction({ type: 'QUOTE', item: enq });
-                            setSellingPrice(Number(enq.supplier_cost * 1.3).toFixed(2));
-                          }}
-                        >
-                          <Send size={14} /> Issue Quote
-                        </button>
-                      )}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-end' }}>
+                        {/* 1. Schedule Call / Followup */}
+                        {(!enq.order_no && !enq.status?.includes('Dispatched') && !enq.status?.includes('Delivered')) && (
+                          <button
+                            className="dash-btn dash-btn-secondary"
+                            style={{ padding: '4px 8px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                            onClick={() => {
+                              setActiveAction({ type: 'FOLLOWUP', item: enq });
+                              setFollowupType('Call');
+                              setSeriousness(enq.client_seriousness || 'High');
+                              setScheduledAt(enq.meeting_schedule || '');
+                              setFollowupNotes(enq.verification_notes || '');
+                            }}
+                          >
+                            <PhoneCall size={12} /> Schedule / Follow-up
+                          </button>
+                        )}
 
-                      {/* Step 8-9: Verify PO & Generate Sales Order */}
-                      {enq.quotation_no && !enq.order_no && (
-                        <button
-                          className="dash-btn dash-btn-amber"
-                          onClick={() => {
-                            setActiveAction({ type: 'PO', item: enq });
-                            setPoNumber(`PO-CUST-${Math.floor(1000 + Math.random() * 9000)}`);
-                          }}
-                        >
-                          <FileText size={14} /> Verify PO & SO
-                        </button>
-                      )}
+                        {/* 2. Verify Seriousness & Forward to Purchase */}
+                        {(!enq.supplier_cost && !enq.status?.includes('Forwarded to Purchase')) && (
+                          <button
+                            className="dash-btn"
+                            style={{ padding: '4px 8px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#0284c7', borderColor: '#0284c7' }}
+                            onClick={() => {
+                              setActiveAction({ type: 'VERIFY_FORWARD', item: enq });
+                              setSeriousness('High');
+                              setVerifyNotes('Client seriousness confirmed via technical review. Forwarding to Purchase.');
+                            }}
+                          >
+                            <ShieldCheck size={12} /> Verify & Forward to Purchase
+                          </button>
+                        )}
 
-                      {/* Step 11-13: Invoice & Transporter Dispatch */}
-                      {enq.order_no && enq.status !== 'Dispatched & Closed' && (
-                        <button
-                          className="dash-btn dash-btn-emerald"
-                          onClick={() => {
-                            setActiveAction({ type: 'DISPATCH', item: enq });
-                            setInvoiceNo(`INV-${Math.floor(10000 + Math.random() * 90000)}`);
-                            setTrackingNo(`TRK-EXP-${Math.floor(10000 + Math.random() * 90000)}`);
-                          }}
-                        >
-                          <Truck size={14} /> Invoice & Dispatch
-                        </button>
-                      )}
+                        {/* 3. Issue Quotation (Once cost estimated by Purchase) */}
+                        {enq.supplier_cost && !enq.quotation_no && (
+                          <button
+                            className="dash-btn"
+                            style={{ padding: '4px 8px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                            onClick={() => {
+                              setActiveAction({ type: 'QUOTE', item: enq });
+                              setSellingPrice(Number(enq.supplier_cost * 1.3).toFixed(2));
+                            }}
+                          >
+                            <Send size={12} /> Generate Quotation
+                          </button>
+                        )}
 
-                      {enq.status === 'Dispatched & Closed' && (
-                        <span style={{ color: '#059669', fontSize: '0.84rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <CheckCircle2 size={16} /> Closed ({enq.invoice_no})
-                        </span>
-                      )}
+                        {/* 4. Client Confirmed -> Forward Approved Enquiry to Store */}
+                        {enq.quotation_no && !enq.order_no && (
+                          <button
+                            className="dash-btn dash-btn-amber"
+                            style={{ padding: '4px 8px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                            onClick={() => {
+                              setActiveAction({ type: 'PO', item: enq });
+                              setPoNumber(`PO-${enq.customer_name?.slice(0, 3).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`);
+                            }}
+                          >
+                            <FileCheck size={12} /> Approve & Forward to Store
+                          </button>
+                        )}
+
+                        {/* 5. Store Packed -> Verify Stock Readiness */}
+                        {enq.order_no && enq.store_status?.includes('Packed') && enq.inspection_status !== 'Stock Inspected & Approved' && (
+                          <button
+                            className="dash-btn"
+                            style={{ padding: '4px 8px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#7c3aed', borderColor: '#7c3aed' }}
+                            onClick={() => {
+                              setActiveAction({ type: 'INSPECT', item: enq });
+                              setInspectionNotes('Physical warehouse inspection passed. Stock verified and ready for transport.');
+                            }}
+                          >
+                            <CheckSquare size={12} /> Inspect Stock Readiness
+                          </button>
+                        )}
+
+                        {/* 6. Arrange Transportation & Delivery Challan */}
+                        {enq.order_no && enq.inspection_status === 'Stock Inspected & Approved' && !enq.status?.includes('Transit') && !enq.status?.includes('Delivered') && (
+                          <button
+                            className="dash-btn dash-btn-emerald"
+                            style={{ padding: '4px 8px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                            onClick={() => {
+                              setActiveAction({ type: 'DISPATCH', item: enq });
+                              setTransportMode('Road');
+                              setInvoiceNo(`INV-${Math.floor(10000 + Math.random() * 90000)}`);
+                              setTrackingNo(`TRK-EXP-${Math.floor(100000 + Math.random() * 900000)}`);
+                              setChallanNo(`DC-${Math.floor(1000 + Math.random() * 9000)}`);
+                            }}
+                          >
+                            <Truck size={12} /> Arrange Transport & Challan
+                          </button>
+                        )}
+
+                        {/* 7. Confirm Delivery */}
+                        {enq.status?.includes('Transit') && (
+                          <button
+                            className="dash-btn"
+                            style={{ padding: '4px 8px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#059669', borderColor: '#059669' }}
+                            onClick={() => {
+                              setActiveAction({ type: 'DELIVER', item: enq });
+                              setDeliveryNotes('Delivered to client dock. Receipt confirmed by client.');
+                            }}
+                          >
+                            <CheckCircle2 size={12} /> Confirm Delivery
+                          </button>
+                        )}
+
+                        {enq.status?.includes('Delivered') && (
+                          <span style={{ color: '#059669', fontSize: '0.8rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <CheckCircle2 size={14} /> Completed
+                          </span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -583,7 +907,7 @@ export default function SalesDashboard() {
       <div className="dash-view-header">
         <div>
           <h2>Sales Commercial & Fulfilment Hub</h2>
-          <p>Compartment-segregated sales pipeline: Price quotes, customer PO validation, invoicing & dispatches.</p>
+          <p>End-to-end sales lifecycle: Client meetings, verification, cost quotations, store order handover, transport & delivery challans.</p>
         </div>
         <button
           onClick={fetchEnquiries}
@@ -597,6 +921,31 @@ export default function SalesDashboard() {
         <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#047857', padding: '12px 18px', borderRadius: '10px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 600, fontSize: '0.9rem' }}>
           <CheckCircle2 size={18} />
           <span>{msg}</span>
+        </div>
+      )}
+
+      {/* WhatsApp Share Popup after Quotation / Invoice generated */}
+      {successWhatsApp && (
+        <div style={{ background: '#f0fdf4', border: '1px solid #86efac', color: '#14532d', padding: '14px 18px', borderRadius: '10px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+          <span style={{ fontWeight: 700, fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            💬 {successWhatsApp.label} generated!
+          </span>
+          <span style={{ fontSize: '0.84rem', color: '#166534' }}>Send it to the client on WhatsApp?</span>
+          <a
+            href={getWhatsAppUrl(successWhatsApp.phone, successWhatsApp.message)}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ padding: '6px 14px', background: '#16a34a', color: '#fff', borderRadius: '6px', textDecoration: 'none', fontWeight: 700, fontSize: '0.86rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
+            💬 Send on WhatsApp
+          </a>
+          <button
+            type="button"
+            onClick={() => setSuccessWhatsApp(null)}
+            style={{ marginLeft: 'auto', background: 'transparent', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '1rem', padding: '2px 6px' }}
+          >
+            <X size={16} />
+          </button>
         </div>
       )}
 
@@ -630,10 +979,6 @@ export default function SalesDashboard() {
               {compartmentData.mechanical.length}
             </span>
           </div>
-          <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748b' }}>
-            <span>Quotes Needed: <strong>{compartmentData.mechanical.filter(e => e.supplier_cost && !e.quotation_no).length}</strong></span>
-            <span>Active Orders: <strong>{compartmentData.mechanical.filter(e => e.order_no).length}</strong></span>
-          </div>
         </div>
 
         {/* Electrical KPI */}
@@ -652,21 +997,17 @@ export default function SalesDashboard() {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#edf4f9', border: '1px solid #cbdce8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#18476c' }}>
+              <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#f1f5f9', border: '1px solid #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155' }}>
                 <Zap size={18} />
               </div>
               <div>
                 <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a' }}>Electrical</span>
-                <div style={{ fontSize: '0.74rem', color: '#64748b' }}>Switchgear, Transformers & Panels</div>
+                <div style={{ fontSize: '0.74rem', color: '#64748b' }}>Transformers & Switchgear</div>
               </div>
             </div>
-            <span style={{ fontSize: '1.65rem', fontWeight: 800, color: '#18476c' }}>
+            <span style={{ fontSize: '1.65rem', fontWeight: 800, color: '#334155' }}>
               {compartmentData.electrical.length}
             </span>
-          </div>
-          <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748b' }}>
-            <span>Quotes Needed: <strong>{compartmentData.electrical.filter(e => e.supplier_cost && !e.quotation_no).length}</strong></span>
-            <span>Active Orders: <strong>{compartmentData.electrical.filter(e => e.order_no).length}</strong></span>
           </div>
         </div>
 
@@ -686,124 +1027,52 @@ export default function SalesDashboard() {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#edf4f9', border: '1px solid #cbdce8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#18476c' }}>
+              <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0f172a' }}>
                 <Monitor size={18} />
               </div>
               <div>
                 <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a' }}>Computer / IT</span>
-                <div style={{ fontSize: '0.74rem', color: '#64748b' }}>Servers, Switches & Storage</div>
+                <div style={{ fontSize: '0.74rem', color: '#64748b' }}>Servers, Storage & Switches</div>
               </div>
             </div>
-            <span style={{ fontSize: '1.65rem', fontWeight: 800, color: '#18476c' }}>
+            <span style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0f172a' }}>
               {compartmentData.computer.length}
             </span>
-          </div>
-          <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748b' }}>
-            <span>Quotes Needed: <strong>{compartmentData.computer.filter(e => e.supplier_cost && !e.quotation_no).length}</strong></span>
-            <span>Active Orders: <strong>{compartmentData.computer.filter(e => e.order_no).length}</strong></span>
           </div>
         </div>
       </div>
 
-      {/* FILTER & COMPARTMENT SELECTOR TOOLBAR */}
-      <div
-        className="dash-card"
-        style={{
-          padding: '12px 18px',
-          marginBottom: '20px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '12px'
-        }}
-      >
-        {/* Compartment Tabs */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginRight: '4px' }}>
-            Compartment:
-          </span>
-
-          <button
-            type="button"
-            className="dash-btn"
-            style={{
-              background: selectedCompartment === 'all' ? '#18476c' : '#ffffff',
-              color: selectedCompartment === 'all' ? '#ffffff' : '#334155',
-              borderColor: selectedCompartment === 'all' ? '#18476c' : '#cbd5e1',
-              padding: '6px 14px',
-              fontSize: '0.82rem',
-              borderRadius: '7px'
-            }}
-            onClick={() => setSelectedCompartment('all')}
-          >
-            All Compartments ({lifecycleFilteredEnquiries.length})
-          </button>
-
-          <button
-            type="button"
-            className="dash-btn"
-            style={{
-              background: selectedCompartment === 'mechanical' ? '#18476c' : '#ffffff',
-              color: selectedCompartment === 'mechanical' ? '#ffffff' : '#334155',
-              borderColor: selectedCompartment === 'mechanical' ? '#18476c' : '#cbd5e1',
-              padding: '6px 14px',
-              fontSize: '0.82rem',
-              borderRadius: '7px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-            onClick={() => setSelectedCompartment('mechanical')}
-          >
-            <Wrench size={14} /> Mechanical ({compartmentData.mechanical.length})
-          </button>
-
-          <button
-            type="button"
-            className="dash-btn"
-            style={{
-              background: selectedCompartment === 'electrical' ? '#18476c' : '#ffffff',
-              color: selectedCompartment === 'electrical' ? '#ffffff' : '#334155',
-              borderColor: selectedCompartment === 'electrical' ? '#18476c' : '#cbd5e1',
-              padding: '6px 14px',
-              fontSize: '0.82rem',
-              borderRadius: '7px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-            onClick={() => setSelectedCompartment('electrical')}
-          >
-            <Zap size={14} /> Electrical ({compartmentData.electrical.length})
-          </button>
-
-          <button
-            type="button"
-            className="dash-btn"
-            style={{
-              background: selectedCompartment === 'computer' ? '#18476c' : '#ffffff',
-              color: selectedCompartment === 'computer' ? '#ffffff' : '#334155',
-              borderColor: selectedCompartment === 'computer' ? '#18476c' : '#cbd5e1',
-              padding: '6px 14px',
-              fontSize: '0.82rem',
-              borderRadius: '7px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-            onClick={() => setSelectedCompartment('computer')}
-          >
-            <Monitor size={14} /> Computer / IT ({compartmentData.computer.length})
-          </button>
+      {/* FILTER & SEARCH BAR */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.84rem', color: '#64748b', fontWeight: 600 }}>Filter Compartment:</span>
+          {['all', 'mechanical', 'electrical', 'computer'].map(comp => (
+            <button
+              key={comp}
+              type="button"
+              onClick={() => setSelectedCompartment(comp)}
+              style={{
+                padding: '5px 12px',
+                borderRadius: '6px',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                border: selectedCompartment === comp ? '1px solid #18476c' : '1px solid #cbd5e1',
+                background: selectedCompartment === comp ? '#18476c' : '#ffffff',
+                color: selectedCompartment === comp ? '#ffffff' : '#334155'
+              }}
+            >
+              {comp.toUpperCase()}
+            </button>
+          ))}
         </div>
 
-        {/* Search Input */}
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', minWidth: '240px' }}>
+        {/* Search */}
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', minWidth: '260px' }}>
           <Search size={15} style={{ position: 'absolute', left: '10px', color: '#94a3b8' }} />
           <input
             type="text"
-            placeholder="Search part code, customer, ref..."
+            placeholder="Search part code, customer, challan..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{
@@ -828,55 +1097,47 @@ export default function SalesDashboard() {
       {/* COMPARTMENTS LIST SECTIONS */}
       {selectedCompartment === 'all' && (
         <div className="compartments-separated-wrapper">
-          {/* 1. Mechanical Compartment Section */}
           {renderCompartmentTable(compartmentData.mechanical, compartments[0])}
-
-          {/* 2. Electrical Compartment Section */}
           {renderCompartmentTable(compartmentData.electrical, compartments[1])}
-
-          {/* 3. Computer / IT Compartment Section */}
           {renderCompartmentTable(compartmentData.computer, compartments[2])}
-
-          {/* 4. Other / Uncategorized Section if any */}
           {compartmentData.other.length > 0 && (
             renderCompartmentTable(compartmentData.other, {
               id: 'other',
               name: 'General',
-              fullTitle: 'General / Unclassified Requirements',
+              fullTitle: 'General / Other Requirements',
               shortTitle: 'General',
-              description: 'Requirements awaiting compartment categorization',
+              description: 'Custom products and general engineering items',
               icon: Layers
             })
           )}
         </div>
       )}
 
-      {/* Individual Compartment Focus View */}
-      {selectedCompartment === 'mechanical' && (
-        renderCompartmentTable(compartmentData.mechanical, compartments[0])
-      )}
-
-      {selectedCompartment === 'electrical' && (
-        renderCompartmentTable(compartmentData.electrical, compartments[1])
-      )}
-
-      {selectedCompartment === 'computer' && (
-        renderCompartmentTable(compartmentData.computer, compartments[2])
-      )}
+      {selectedCompartment === 'mechanical' && renderCompartmentTable(compartmentData.mechanical, compartments[0])}
+      {selectedCompartment === 'electrical' && renderCompartmentTable(compartmentData.electrical, compartments[1])}
+      {selectedCompartment === 'computer' && renderCompartmentTable(compartmentData.computer, compartments[2])}
 
       {/* ACTION MODALS */}
       {activeAction && (
         <div className="modal-backdrop">
-          <div className="modal-dialog animate-fade">
+          <div className="modal-dialog animate-fade" style={{ maxWidth: '580px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {activeAction.type === 'FOLLOWUP' && <PhoneCall size={20} color="#18476c" />}
+                {activeAction.type === 'VERIFY_FORWARD' && <ShieldCheck size={20} color="#0284c7" />}
                 {activeAction.type === 'QUOTE' && <Send size={20} color="#18476c" />}
-                {activeAction.type === 'PO' && <FileText size={20} color="#d97706" />}
+                {activeAction.type === 'PO' && <FileCheck size={20} color="#d97706" />}
+                {activeAction.type === 'INSPECT' && <CheckSquare size={20} color="#7c3aed" />}
                 {activeAction.type === 'DISPATCH' && <Truck size={20} color="#059669" />}
+                {activeAction.type === 'DELIVER' && <CheckCircle2 size={20} color="#059669" />}
                 <h3 style={{ margin: 0, padding: 0, border: 'none', fontSize: '1.15rem' }}>
+                  {activeAction.type === 'FOLLOWUP' && `Schedule Call / Follow-up: ${activeAction.item.enquiry_no}`}
+                  {activeAction.type === 'VERIFY_FORWARD' && `Verify Seriousness & Forward to Purchase`}
                   {activeAction.type === 'QUOTE' && `Issue Quotation: ${activeAction.item.enquiry_no}`}
-                  {activeAction.type === 'PO' && `Verify Customer PO & Confirm SO`}
-                  {activeAction.type === 'DISPATCH' && `Invoice & Transporter Dispatch`}
+                  {activeAction.type === 'PO' && `Confirm PO & Forward to Store`}
+                  {activeAction.type === 'INSPECT' && `Verify Stock Readiness`}
+                  {activeAction.type === 'DISPATCH' && `Arrange Transport & Issue Delivery Challan`}
+                  {activeAction.type === 'DELIVER' && `Confirm Shipment Delivery`}
                 </h3>
               </div>
               <button
@@ -888,13 +1149,113 @@ export default function SalesDashboard() {
               </button>
             </div>
 
+            {/* 1. Schedule Call / Followup Form */}
+            {activeAction.type === 'FOLLOWUP' && (
+              <form onSubmit={handleScheduleFollowup} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.86rem' }}>
+                  Client: <strong>{activeAction.item.customer_name}</strong> | Item: <strong>{activeAction.item.part_code}</strong> ({activeAction.item.category})
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>Follow-up Type</label>
+                    <select value={followupType} onChange={e => setFollowupType(e.target.value)} style={{ width: '100%' }}>
+                      <option value="Phone Call">Phone Call</option>
+                      <option value="Client Meeting (In-Person)">Client Meeting (In-Person)</option>
+                      <option value="Video Conference">Video Conference</option>
+                      <option value="Email Communication">Email Communication</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>Client Seriousness</label>
+                    <select value={seriousness} onChange={e => setSeriousness(e.target.value)} style={{ width: '100%' }}>
+                      <option value="High (Ready to Order)">High (Ready to Order)</option>
+                      <option value="Medium (Evaluating Options)">Medium (Evaluating Options)</option>
+                      <option value="Low (Casual Enquiry)">Low (Casual Enquiry)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>Schedule Date / Time</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Tomorrow 11:30 AM or 18-Nov-2026"
+                    value={scheduledAt}
+                    onChange={e => setScheduledAt(e.target.value)}
+                    style={{ width: '100%' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>Follow-up Discussion Notes</label>
+                  <textarea
+                    rows="3"
+                    placeholder="Discussed requirements, technical constraints, timeline..."
+                    value={followupNotes}
+                    onChange={e => setFollowupNotes(e.target.value)}
+                    style={{ width: '100%', resize: 'vertical' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                  <button type="submit" className="dash-btn" style={{ flex: 1 }}>
+                    Save Follow-up & Schedule
+                  </button>
+                  <button type="button" className="dash-btn dash-btn-secondary" onClick={() => setActiveAction(null)}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* 2. Verify Seriousness & Forward to Purchase */}
+            {activeAction.type === 'VERIFY_FORWARD' && (
+              <form onSubmit={handleVerifyAndForward} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <p style={{ fontSize: '0.86rem', color: '#64748b', background: '#f0f9ff', padding: '10px 14px', borderRadius: '8px', border: '1px solid #bae6fd' }}>
+                  Confirming requirements for <strong style={{ color: '#0369a1' }}>{activeAction.item.customer_name}</strong> ({activeAction.item.part_code} × {activeAction.item.quantity}). Once confirmed, the enquiry will be routed to the <strong>Purchase Department</strong> for cost calculation.
+                </p>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>Client Seriousness Level *</label>
+                  <select value={seriousness} onChange={e => setSeriousness(e.target.value)} style={{ width: '100%' }}>
+                    <option value="High (Verified Serious Buyer)">High (Verified Serious Buyer)</option>
+                    <option value="Confirmed Budgeted Project">Confirmed Budgeted Project</option>
+                    <option value="Urgent Procurement Requirement">Urgent Procurement Requirement</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>Technical & Requirement Verification Notes *</label>
+                  <textarea
+                    rows="3"
+                    required
+                    placeholder="Client specifications confirmed, delivery location verified, ready for vendor cost estimation..."
+                    value={verifyNotes}
+                    onChange={e => setVerifyNotes(e.target.value)}
+                    style={{ width: '100%', resize: 'vertical' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                  <button type="submit" className="dash-btn" style={{ flex: 1, background: '#0284c7', borderColor: '#0284c7' }}>
+                    <ShieldCheck size={16} /> Confirm Requirements & Forward to Purchase
+                  </button>
+                  <button type="button" className="dash-btn dash-btn-secondary" onClick={() => setActiveAction(null)}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* 3. Issue Quotation Form */}
             {activeAction.type === 'QUOTE' && (
               <form onSubmit={handleIssueQuotation} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <p style={{ fontSize: '0.88rem', color: '#64748b', background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                  Compartment: <strong style={{ color: '#18476c' }}>{activeAction.item.category}</strong> | Customer: <strong style={{ color: '#0f172a' }}>{activeAction.item.customer_name}</strong> | Supplier Cost: <strong style={{ color: '#0f172a' }}>${activeAction.item.supplier_cost}</strong>.
+                  Customer: <strong>{activeAction.item.customer_name}</strong> | Supplier Cost: <strong style={{ color: '#059669' }}>₹{activeAction.item.supplier_cost}</strong> | Lead time: <strong>{activeAction.item.lead_time_days || 3} days</strong>.
                 </p>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>Selling Price ($) *</label>
+                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>Selling Price per Unit (₹) *</label>
                   <input
                     type="number"
                     step="0.01"
@@ -929,11 +1290,10 @@ export default function SalesDashboard() {
                       }
                     })}
                     className="dash-btn dash-btn-secondary"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                   >
-                    <Eye size={15} /> Preview Quotation PDF
+                    <Eye size={15} /> Preview PDF
                   </button>
-                  <button type="submit" className="dash-btn" style={{ flex: 1, padding: '10px' }}>
+                  <button type="submit" className="dash-btn" style={{ flex: 1 }}>
                     Send Quotation to Client
                   </button>
                   <button type="button" className="dash-btn dash-btn-secondary" onClick={() => setActiveAction(null)}>
@@ -943,10 +1303,11 @@ export default function SalesDashboard() {
               </form>
             )}
 
+            {/* 4. PO Verification & Store Forwarding */}
             {activeAction.type === 'PO' && (
               <form onSubmit={handleConvertPO} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <p style={{ fontSize: '0.88rem', color: '#64748b', background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                  Enquiry <strong style={{ color: '#0f172a' }}>{activeAction.item.enquiry_no}</strong> ({activeAction.item.category}) for client <strong style={{ color: '#0f172a' }}>{activeAction.item.customer_name}</strong>
+                  Client <strong>{activeAction.item.customer_name}</strong> approved quotation <strong>{activeAction.item.quotation_no}</strong>. Confirming order will route it directly to <strong>Store Department</strong> for picking and packing.
                 </p>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>Customer Purchase Order (PO) Number *</label>
@@ -959,24 +1320,8 @@ export default function SalesDashboard() {
                   />
                 </div>
                 <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setPreviewModal({
-                      isOpen: true,
-                      type: 'order',
-                      data: {
-                        ...activeAction.item,
-                        po_number: poNumber,
-                        order_no: `SO-PREVIEW-${activeAction.item.enquiry_no ? activeAction.item.enquiry_no.replace('ENQ-', '') : '001'}`
-                      }
-                    })}
-                    className="dash-btn dash-btn-secondary"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                  >
-                    <Eye size={15} /> Preview Sales Order PDF
-                  </button>
-                  <button type="submit" className="dash-btn dash-btn-amber" style={{ flex: 1, padding: '10px' }}>
-                    Confirm & Send to Store
+                  <button type="submit" className="dash-btn dash-btn-amber" style={{ flex: 1 }}>
+                    <FileCheck size={16} /> Confirm & Forward to Store
                   </button>
                   <button type="button" className="dash-btn dash-btn-secondary" onClick={() => setActiveAction(null)}>
                     Cancel
@@ -985,10 +1330,105 @@ export default function SalesDashboard() {
               </form>
             )}
 
-            {activeAction.type === 'DISPATCH' && (
-              <form onSubmit={handleDispatch} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* 5. Stock Readiness Inspection */}
+            {activeAction.type === 'INSPECT' && (
+              <form onSubmit={handleInspectStock} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <p style={{ fontSize: '0.88rem', color: '#64748b', background: '#faf5ff', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e9d5ff' }}>
+                  Store Department has packed the goods for Order <strong>{activeAction.item.order_no}</strong>. Verify physical stock readiness prior to arranging carrier transport.
+                </p>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>Invoice Number *</label>
+                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>Inspection Verification Notes</label>
+                  <textarea
+                    rows="3"
+                    value={inspectionNotes}
+                    onChange={e => setInspectionNotes(e.target.value)}
+                    style={{ width: '100%', resize: 'vertical' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                  <button type="submit" className="dash-btn" style={{ flex: 1, background: '#7c3aed', borderColor: '#7c3aed' }}>
+                    <CheckSquare size={16} /> Approve Stock for Transportation
+                  </button>
+                  <button type="button" className="dash-btn dash-btn-secondary" onClick={() => setActiveAction(null)}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* 6. Arrange Transportation (Road, Air, Water) & Delivery Challan */}
+            {activeAction.type === 'DISPATCH' && (
+              <form onSubmit={handleDispatch} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ background: '#ecfdf5', padding: '10px 14px', borderRadius: '8px', border: '1px solid #a7f3d0', fontSize: '0.86rem', color: '#065f46' }}>
+                  Arrange transportation according to client requirements (<strong>Road, Air, Water</strong>) and generate official Delivery Challan.
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                      Transportation Mode * (Required)
+                    </label>
+                    <select
+                      value={transportMode}
+                      onChange={e => {
+                        setTransportMode(e.target.value);
+                        if (e.target.value === 'Air') setTransporter('Air Cargo Freight Direct');
+                        else if (e.target.value === 'Water') setTransporter('Maritime Coastal Logistics');
+                        else setTransporter('Roadways Express Cargo');
+                      }}
+                      style={{ width: '100%', fontWeight: 700, color: '#18476c' }}
+                    >
+                      <option value="Road">Road (Truck / Surface Cargo)</option>
+                      <option value="Air">Air (Air Freight Express)</option>
+                      <option value="Water">Water (Coastal / Inland Waterways)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                      Delivery Challan No *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={challanNo}
+                      onChange={e => setChallanNo(e.target.value)}
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                      Transporter / Carrier *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={transporter}
+                      onChange={e => setTransporter(e.target.value)}
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                      Tracking / Consignment No *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={trackingNo}
+                      onChange={e => setTrackingNo(e.target.value)}
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    Invoice Number *
+                  </label>
                   <input
                     type="text"
                     required
@@ -997,46 +1437,28 @@ export default function SalesDashboard() {
                     style={{ width: '100%' }}
                   />
                 </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>Transporter / Carrier Mode *</label>
-                  <input
-                    type="text"
-                    required
-                    value={transporter}
-                    onChange={e => setTransporter(e.target.value)}
-                    style={{ width: '100%' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>Tracking / AWB Number *</label>
-                  <input
-                    type="text"
-                    required
-                    value={trackingNo}
-                    onChange={e => setTrackingNo(e.target.value)}
-                    style={{ width: '100%' }}
-                  />
-                </div>
-                <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+
+                <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
                   <button
                     type="button"
                     onClick={() => setPreviewModal({
                       isOpen: true,
-                      type: 'invoice',
+                      type: 'challan',
                       data: {
                         ...activeAction.item,
-                        invoice_no: invoiceNo,
-                        transporter: transporter,
-                        tracking_no: trackingNo
+                        transport_mode: transportMode,
+                        challan_no: challanNo,
+                        transporter,
+                        tracking_no: trackingNo,
+                        invoice_no: invoiceNo
                       }
                     })}
                     className="dash-btn dash-btn-secondary"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                   >
-                    <Eye size={15} /> Preview Tax Invoice
+                    <Eye size={15} /> Preview Delivery Challan PDF
                   </button>
-                  <button type="submit" className="dash-btn dash-btn-emerald" style={{ flex: 1, padding: '10px' }}>
-                    Complete Dispatch & Close
+                  <button type="submit" className="dash-btn dash-btn-emerald" style={{ flex: 1 }}>
+                    <Truck size={15} /> Dispatch Shipment & Issue Challan
                   </button>
                   <button type="button" className="dash-btn dash-btn-secondary" onClick={() => setActiveAction(null)}>
                     Cancel
@@ -1044,6 +1466,110 @@ export default function SalesDashboard() {
                 </div>
               </form>
             )}
+
+            {/* 7. Confirm Delivery Form */}
+            {activeAction.type === 'DELIVER' && (
+              <form onSubmit={handleConfirmDelivery} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <p style={{ fontSize: '0.88rem', color: '#64748b', background: '#ecfdf5', padding: '10px 14px', borderRadius: '8px', border: '1px solid #a7f3d0' }}>
+                  Confirming delivery for Order <strong>{activeAction.item.order_no}</strong> shipped via <strong>{activeAction.item.transport_mode || 'Road'}</strong> (Challan #{activeAction.item.challan_no}).
+                </p>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    Delivery Confirmation & Acknowledgment Notes
+                  </label>
+                  <textarea
+                    rows="3"
+                    value={deliveryNotes}
+                    onChange={e => setDeliveryNotes(e.target.value)}
+                    style={{ width: '100%', resize: 'vertical' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                  <button type="submit" className="dash-btn" style={{ flex: 1, background: '#059669', borderColor: '#059669' }}>
+                    <CheckCircle2 size={16} /> Confirm Delivery & Close Order
+                  </button>
+                  <button type="button" className="dash-btn dash-btn-secondary" onClick={() => setActiveAction(null)}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* FULL ENQUIRY HANDOVER AUDIT TRAIL MODAL */}
+      {timelineModal.isOpen && (
+        <div className="modal-backdrop">
+          <div className="modal-dialog animate-fade" style={{ maxWidth: '640px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <History size={20} color="#18476c" />
+                <h3 style={{ margin: 0, padding: 0, border: 'none', fontSize: '1.15rem' }}>
+                  Audit Trail & History: {timelineModal.item?.enquiry_no}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTimelineModal({ isOpen: false, item: null, history: [], followups: [], loading: false })}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: '8px' }}>
+              {timelineModal.loading ? (
+                <div style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>Loading history trail...</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {timelineModal.history.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>No history records logged yet.</div>
+                  ) : (
+                    timelineModal.history.map((h, i) => (
+                      <div
+                        key={h.id || i}
+                        style={{
+                          background: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '8px',
+                          padding: '12px 14px',
+                          borderLeft: `4px solid ${
+                            h.department === 'Reception' ? '#0891b2' :
+                            h.department === 'Purchase' ? '#d97706' :
+                            h.department === 'Store' ? '#7c3aed' : '#059669'
+                          }`
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                          <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0f172a' }}>{h.action}</span>
+                          <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                            {new Date(h.created_at).toLocaleString()}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px' }}>
+                          <span className="status-badge badge-slate" style={{ fontSize: '0.68rem', padding: '1px 6px' }}>
+                            Dept: {h.department}
+                          </span>
+                          <span style={{ fontSize: '0.72rem', color: '#475569' }}>By: {h.performed_by}</span>
+                        </div>
+                        <p style={{ margin: 0, fontSize: '0.82rem', color: '#334155' }}>{h.notes}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #e2e8f0', textAlign: 'right' }}>
+              <button
+                type="button"
+                className="dash-btn dash-btn-secondary"
+                onClick={() => setTimelineModal({ isOpen: false, item: null, history: [], followups: [], loading: false })}
+              >
+                Close Trail
+              </button>
+            </div>
           </div>
         </div>
       )}

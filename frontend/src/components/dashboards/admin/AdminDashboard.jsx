@@ -5,7 +5,7 @@ import { BarChart3, Users, FileText, CheckCircle2, RefreshCw, Shield, Layers, Tr
 import { useLiveSync } from '../../../utils/useLiveSync';
 import SalesGraphicalAnalysis from './SalesGraphicalAnalysis';
 import DocumentModal from '../../common/DocumentModal';
-import { buildQuotationPdf, buildInvoicePdf, buildSalesOrderPdf, downloadDocumentPdf } from '../../../utils/documentGenerator';
+import { buildQuotationPdf, buildInvoicePdf, buildSalesOrderPdf, buildDeliveryChallanPdf, downloadDocumentPdf } from '../../../utils/documentGenerator';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -279,6 +279,48 @@ export default function AdminDashboard() {
                                       color: '#047857'
                                     }}
                                     title="Download Invoice PDF"
+                                  >
+                                    <Download size={10} />
+                                  </button>
+                                </div>
+                              )}
+                              {enq.challan_no && (
+                                <div style={{ display: 'flex', gap: '4px', marginTop: '3px' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => setPreviewModal({ isOpen: true, type: 'challan', data: enq })}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '3px',
+                                      padding: '2px 6px',
+                                      background: '#f0fdf4',
+                                      border: '1px solid #bbf7d0',
+                                      borderRadius: '4px',
+                                      fontSize: '0.7rem',
+                                      fontWeight: 600,
+                                      cursor: 'pointer',
+                                      color: '#15803d'
+                                    }}
+                                    title="View Delivery Challan"
+                                  >
+                                    <Eye size={10} color="#16a34a" /> Challan
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => downloadDocumentPdf(buildDeliveryChallanPdf(enq), `DeliveryChallan-${enq.challan_no}.pdf`)}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      padding: '2px 5px',
+                                      background: '#f0fdf4',
+                                      border: '1px solid #bbf7d0',
+                                      borderRadius: '4px',
+                                      fontSize: '0.7rem',
+                                      cursor: 'pointer',
+                                      color: '#15803d'
+                                    }}
+                                    title="Download Delivery Challan PDF"
                                   >
                                     <Download size={10} />
                                   </button>

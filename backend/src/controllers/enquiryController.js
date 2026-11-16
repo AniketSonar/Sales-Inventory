@@ -1,6 +1,6 @@
 const db = require('../config/db');
 
-// Get all enquiries with joined pricing, quotation, and order details
+// Get all enquiries with joined pricing, quotation, order, and workflow details
 const getEnquiries = async (req, res) => {
   try {
     const rows = await db.allAsync(`
@@ -21,7 +21,12 @@ const getEnquiries = async (req, res) => {
         s.dispatch_status,
         s.invoice_no,
         s.transporter,
-        s.tracking_no
+        s.tracking_no,
+        s.transport_mode,
+        s.challan_no,
+        s.stock_readiness,
+        s.inspection_status,
+        s.delivered_at
       FROM enquiries e
       LEFT JOIN purchase_pricing p ON e.id = p.enquiry_id
       LEFT JOIN quotations q ON e.id = q.enquiry_id
@@ -30,12 +35,12 @@ const getEnquiries = async (req, res) => {
     `);
     res.json({ success: true, data: rows });
   } catch (err) {
-    console.error(err);
+    console.error('Error fetching enquiries:', err);
     res.status(500).json({ success: false, message: 'Database query failed' });
   }
 };
 
-// Create new enquiry (Receptionist)
+// Create new enquiry (Receptionist) - All new enquiries go directly to Salesperson!
 const createEnquiry = async (req, res) => {
   try {
     const { customer_name, contact_email, contact_phone, category, part_code, quantity, notes, pdf_attachment, attachment_name } = req.body;
@@ -46,17 +51,58 @@ const createEnquiry = async (req, res) => {
     const id = `enq_${Date.now()}`;
     const enquiry_no = `ENQ-${Math.floor(1000 + Math.random() * 9000)}`;
     const qty = parseInt(quantity, 10) || 1;
+    const initialStatus = 'New - Assigned to Sales';
 
     await db.runAsync(`
-      INSERT INTO enquiries (id, enquiry_no, customer_name, contact_email, contact_phone, category, part_code, quantity, notes, status, pdf_attachment, attachment_name)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [id, enquiry_no, customer_name, contact_email || '', contact_phone || '', category, part_code, qty, notes || '', 'Awaiting Purchase Pricing', pdf_attachment || null, attachment_name || null]);
+      INSERT INTO enquiries (
+        id, enquiry_no, customer_name, contact_email, contact_phone, 
+        category, part_code, quantity, notes, status, 
+        pdf_attachment, attachment_name, client_seriousness
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending Verification')
+    `, [
+      id, enquiry_no, customer_name, contact_email || '', contact_phone || '', 
+      category, part_code, qty, notes || '', initialStatus, 
+      pdf_attachment || null, attachment_name || null
+    ]);
 
-    res.status(201).json({ success: true, message: 'Enquiry created successfully', enquiry_no, id });
+    // Record initial handover in history
+    const histId = `hist_${Date.now()}`;
+    await db.runAsync(`
+      INSERT INTO enquiry_history (
+        id, enquiry_id, action, department, status_from, status_to, performed_by, notes
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      histId, id, 'Enquiry Received & Assigned', 'Reception', 
+      null, initialStatus, 'Front Desk Receptionist', 
+      'Enquiry logged and routed directly to Sales Department for client follow-up and verification.'
+    ]);
+
+    res.status(201).json({ success: true, message: 'Enquiry created successfully and routed to Sales', enquiry_no, id });
   } catch (err) {
-    console.error(err);
+    console.error('Error creating enquiry:', err);
     res.status(500).json({ success: false, message: 'Failed to insert enquiry' });
   }
 };
 
-module.exports = { getEnquiries, createEnquiry };
+// Get complete history and follow-up timeline for an enquiry
+const getEnquiryTimeline = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const history = await db.allAsync(`
+      SELECT * FROM enquiry_history WHERE enquiry_id = ? ORDER BY created_at ASC
+    `, [id]);
+
+    const followups = await db.allAsync(`
+      SELECT * FROM enquiry_followups WHERE enquiry_id = ? ORDER BY created_at ASC
+    `, [id]);
+
+    res.json({ success: true, data: { history, followups } });
+  } catch (err) {
+    console.error('Error fetching timeline:', err);
+    res.status(500).json({ success: false, message: 'Failed to retrieve timeline' });
+  }
+};
+
+module.exports = { getEnquiries, createEnquiry, getEnquiryTimeline };

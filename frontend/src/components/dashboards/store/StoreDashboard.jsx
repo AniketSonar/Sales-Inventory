@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../layout/DashboardLayout';
 import { storeConfig } from '../../layout/dashboardConfigs';
-import { Package, CheckCircle2, Clock, RefreshCw, Boxes, Check, ArrowRight, Eye, Download } from 'lucide-react';
+import { 
+  Package, CheckCircle2, Clock, RefreshCw, Boxes, Check, 
+  ArrowRight, Eye, Download, ShieldCheck, BellRing, PackageCheck, AlertCircle 
+} from 'lucide-react';
 import { useLiveSync } from '../../../utils/useLiveSync';
 import DocumentModal from '../../common/DocumentModal';
 import { buildSalesOrderPdf, downloadDocumentPdf } from '../../../utils/documentGenerator';
@@ -11,17 +14,18 @@ export default function StoreDashboard() {
   const [enquiries, setEnquiries] = useState([]);
   const [msg, setMsg] = useState('');
   const [previewModal, setPreviewModal] = useState({ isOpen: false, type: 'order', data: null });
+  const [packingNotes, setPackingNotes] = useState('');
 
   const fetchOrders = async () => {
     try {
       const res = await fetch('http://localhost:5000/api/enquiries');
       const data = await res.json();
       if (data.success) {
-        // filter orders that have sales_orders
-        setEnquiries(data.data.filter(e => e.order_no));
+        // Filter orders that have been approved and forwarded to Store (have order_no or approved status)
+        setEnquiries(data.data.filter(e => e.order_no || e.status?.includes('Store')));
       }
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching store orders:', err);
     }
   };
 
@@ -32,18 +36,33 @@ export default function StoreDashboard() {
       const res = await fetch('http://localhost:5000/api/store/pack', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enquiry_id: enquiryId })
+        body: JSON.stringify({ 
+          enquiry_id: enquiryId,
+          stock_notes: 'All products and components checked against PO specifications, packed securely, and staged in outbound bay.',
+          performed_by: 'Store Warehouse Team'
+        })
       });
       const data = await res.json();
       if (data.success) {
-        setMsg(`Order ${orderNo} marked as Picked, Packed & Reserved in Database!`);
+        setMsg(`Order ${orderNo} marked as Packed! Stock readiness status updated & Salesperson notified for inspection.`);
         fetchOrders();
-        setTimeout(() => setMsg(''), 4000);
+        setTimeout(() => setMsg(''), 5000);
       }
     } catch (err) {
-      console.error(err);
+      console.error('Error packing order:', err);
     }
   };
+
+  // Filter based on active tab
+  const displayedOrders = enquiries.filter(e => {
+    if (activeTab === 'packing') {
+      return !e.store_status?.includes('Packed');
+    }
+    if (activeTab === 'ready-inspection') {
+      return e.store_status?.includes('Packed');
+    }
+    return true; // 'dashboard': all
+  });
 
   return (
     <DashboardLayout
@@ -53,8 +72,8 @@ export default function StoreDashboard() {
     >
       <div className="dash-view-header">
         <div>
-          <h2>Warehouse & Store Fulfillment</h2>
-          <p>Pick, pack and reserve stock for verified Sales Orders awaiting dispatch.</p>
+          <h2>Store & Warehouse Fulfillment</h2>
+          <p>Receive approved enquiries, check parts availability, pack available stock, and notify Sales for readiness inspection.</p>
         </div>
         <button
           onClick={fetchOrders}
@@ -71,10 +90,41 @@ export default function StoreDashboard() {
         </div>
       )}
 
+      {/* KPI Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+        <div className="dash-card" style={{ padding: '16px', borderTop: '3px solid #7c3aed', margin: 0 }}>
+          <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Approved Enquiries Received</div>
+          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: '4px 0' }}>
+            {enquiries.length}
+          </div>
+          <span style={{ fontSize: '0.74rem', color: '#7c3aed' }}>From Sales Department</span>
+        </div>
+        <div className="dash-card" style={{ padding: '16px', borderTop: '3px solid #f59e0b', margin: 0 }}>
+          <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Awaiting Pick & Pack</div>
+          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#b45309', margin: '4px 0' }}>
+            {enquiries.filter(e => !e.store_status?.includes('Packed')).length}
+          </div>
+          <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Pending warehouse action</span>
+        </div>
+        <div className="dash-card" style={{ padding: '16px', borderTop: '3px solid #10b981', margin: 0 }}>
+          <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Packed & Sales Notified</div>
+          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#059669', margin: '4px 0' }}>
+            {enquiries.filter(e => e.store_status?.includes('Packed')).length}
+          </div>
+          <span style={{ fontSize: '0.74rem', color: '#059669' }}>Ready for Sales inspection</span>
+        </div>
+      </div>
+
       <div className="dash-card">
-        <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Package size={19} color="#18476c" /> Store Orders Queue
-        </h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+            <Package size={19} color="#18476c" /> Approved Store Orders & Packing Queue
+          </h3>
+          <span className="status-badge badge-slate" style={{ fontSize: '0.76rem', fontWeight: 700 }}>
+            {displayedOrders.length} Orders
+          </span>
+        </div>
+
         <div className="dash-table-wrapper">
           <table className="dash-table">
             <thead>
@@ -84,19 +134,20 @@ export default function StoreDashboard() {
                 <th>Item Code</th>
                 <th>Qty to Pack</th>
                 <th>Category</th>
-                <th>Fulfillment Status</th>
+                <th>Stock Readiness</th>
+                <th>Inspection Notification</th>
                 <th style={{ textAlign: 'right', paddingRight: '20px' }}>Store Action</th>
               </tr>
             </thead>
             <tbody>
-              {enquiries.length === 0 ? (
+              {displayedOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
-                    No confirmed sales orders awaiting store packing.
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                    No approved orders in this queue.
                   </td>
                 </tr>
               ) : (
-                enquiries.map(enq => (
+                displayedOrders.map(enq => (
                   <tr key={enq.id}>
                     <td>
                       <span className="data-code-pill" style={{ color: '#18476c', fontWeight: 700 }}>
@@ -162,16 +213,26 @@ export default function StoreDashboard() {
                     </td>
                     <td>
                       <span className={`status-badge ${enq.store_status?.includes('Packed') ? 'badge-emerald' : 'badge-amber'}`}>
-                        {enq.store_status || 'Pending Packing'}
+                        {enq.stock_readiness || enq.store_status || 'Pending Packing'}
                       </span>
+                    </td>
+                    <td>
+                      {enq.store_status?.includes('Packed') ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.76rem', color: '#059669', fontWeight: 600 }}>
+                          <BellRing size={12} /> Salesperson Notified
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>Awaiting Pack</span>
+                      )}
                     </td>
                     <td style={{ textAlign: 'right', paddingRight: '20px' }}>
                       {!enq.store_status?.includes('Packed') ? (
                         <button
                           className="dash-btn"
                           onClick={() => handlePackOrder(enq.id, enq.order_no)}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                         >
-                          <Boxes size={14} /> Pick & Pack
+                          <Boxes size={14} /> Pack & Notify Sales
                         </button>
                       ) : (
                         <span style={{ color: '#059669', fontSize: '0.84rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>

@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../layout/DashboardLayout';
 import { purchaseConfig } from '../../layout/dashboardConfigs';
-import { DollarSign, IndianRupee, CheckCircle2, Clock, RefreshCw, AlertCircle, ShoppingCart, Box, X, Lock } from 'lucide-react';
+import { 
+  DollarSign, IndianRupee, CheckCircle2, Clock, RefreshCw, 
+  AlertCircle, ShoppingCart, Box, X, Lock, Send, ShieldCheck, CheckSquare, Layers 
+} from 'lucide-react';
 import { useLiveSync } from '../../../utils/useLiveSync';
 
 export default function PurchaseDashboard() {
@@ -20,6 +23,15 @@ export default function PurchaseDashboard() {
     return s.includes('closed') || s.includes('dispatched') || d.includes('dispatched');
   };
 
+  const isVerifiedFromSales = (enq) => {
+    const s = enq.status || '';
+    // Unverified enquiries still with Sales must NOT go to Purchase!
+    if (s.includes('New - Assigned') || s.includes('Follow-up & Verification')) {
+      return false;
+    }
+    return true;
+  };
+
   const fetchEnquiries = async () => {
     try {
       const res = await fetch('http://localhost:5000/api/enquiries');
@@ -28,7 +40,7 @@ export default function PurchaseDashboard() {
         setEnquiries(data.data);
       }
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching enquiries:', err);
     }
   };
 
@@ -59,20 +71,34 @@ export default function PurchaseDashboard() {
           supplier_cost: supplierCost,
           availability,
           lead_time_days: leadTime,
-          notes
+          notes,
+          performed_by: 'Purchase Officer'
         })
       });
       const data = await res.json();
       if (data.success) {
-        setMsg(`Supplier cost and availability saved to Database for ${selectedEnquiry.enquiry_no}!`);
+        setMsg(`Cost estimation calculated and sent back to Salesperson for ${selectedEnquiry.enquiry_no}!`);
         setSelectedEnquiry(null);
         fetchEnquiries();
         setTimeout(() => setMsg(''), 4000);
       }
     } catch (err) {
-      console.error(err);
+      console.error('Error recording pricing:', err);
     }
   };
+
+  // Filter based on active tab
+  const verifiedList = enquiries.filter(isVerifiedFromSales);
+
+  const displayedList = verifiedList.filter(e => {
+    if (activeTab === 'vendor-costs') {
+      return !!e.supplier_cost;
+    }
+    if (activeTab === 'availability') {
+      return true;
+    }
+    return true; // 'dashboard': all verified enquiries
+  });
 
   return (
     <DashboardLayout
@@ -82,8 +108,8 @@ export default function PurchaseDashboard() {
     >
       <div className="dash-view-header">
         <div>
-          <h2>Procurement & Pricing Desk</h2>
-          <p>Provide accurate supplier cost, availability, and lead time for customer inquiries.</p>
+          <h2>Purchase Department – Cost Estimation & Parts Check</h2>
+          <p>Receive verified enquiries from Sales, check required products & parts, calculate purchase costs, and return estimates to Sales.</p>
         </div>
         <button
           onClick={fetchEnquiries}
@@ -100,12 +126,43 @@ export default function PurchaseDashboard() {
         </div>
       )}
 
+      {/* Overview Stat Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+        <div className="dash-card" style={{ padding: '16px', borderTop: '3px solid #d97706', margin: 0 }}>
+          <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Verified by Sales</div>
+          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: '4px 0' }}>
+            {verifiedList.length}
+          </div>
+          <span style={{ fontSize: '0.74rem', color: '#d97706' }}>Awaiting or Priced</span>
+        </div>
+        <div className="dash-card" style={{ padding: '16px', borderTop: '3px solid #ef4444', margin: 0 }}>
+          <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Pending Cost Calculation</div>
+          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#ef4444', margin: '4px 0' }}>
+            {verifiedList.filter(e => !e.supplier_cost).length}
+          </div>
+          <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Action required</span>
+        </div>
+        <div className="dash-card" style={{ padding: '16px', borderTop: '3px solid #10b981', margin: 0 }}>
+          <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Estimates Sent to Sales</div>
+          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#059669', margin: '4px 0' }}>
+            {verifiedList.filter(e => e.supplier_cost).length}
+          </div>
+          <span style={{ fontSize: '0.74rem', color: '#059669' }}>Handed over to Sales</span>
+        </div>
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: selectedEnquiry ? '1fr 440px' : '1fr', gap: '22px' }}>
         {/* Enquiries List */}
         <div className="dash-card">
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <DollarSign size={19} color="#18476c" /> Enquiries Awaiting / With Purchase Pricing
-          </h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+              <DollarSign size={19} color="#18476c" /> Verified Enquiries for Cost Estimation
+            </h3>
+            <span className="status-badge badge-slate" style={{ fontSize: '0.76rem', fontWeight: 700 }}>
+              {displayedList.length} Records
+            </span>
+          </div>
+
           <div className="dash-table-wrapper">
             <table className="dash-table">
               <thead>
@@ -114,27 +171,29 @@ export default function PurchaseDashboard() {
                   <th>Customer</th>
                   <th>Category</th>
                   <th>Part Code & Qty</th>
+                  <th>Sales Verification</th>
                   <th>Supplier Cost</th>
                   <th>Availability</th>
                   <th>Lead Time</th>
-                  <th style={{ textAlign: 'right', paddingRight: '20px' }}>Action</th>
+                  <th style={{ textAlign: 'right', paddingRight: '20px' }}>Purchase Action</th>
                 </tr>
               </thead>
               <tbody>
-                {enquiries.length === 0 ? (
+                {displayedList.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
-                      No enquiries pending pricing.
+                    <td colSpan={9} style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                      No verified enquiries pending cost estimation.
                     </td>
                   </tr>
                 ) : (
-                  enquiries.map(enq => (
+                  displayedList.map(enq => (
                     <tr key={enq.id}>
                       <td>
                         <span className="data-code-pill">{enq.enquiry_no}</span>
                       </td>
                       <td>
                         <strong style={{ color: '#0f172a', display: 'block', fontSize: '0.88rem' }}>{enq.customer_name}</strong>
+                        <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{enq.notes || 'No customer notes'}</span>
                       </td>
                       <td>
                         <span className="status-badge badge-blue">
@@ -144,6 +203,16 @@ export default function PurchaseDashboard() {
                       <td>
                         <span style={{ fontWeight: 600, color: '#1e293b' }}>{enq.part_code}</span>
                         <span className="status-badge badge-slate" style={{ marginLeft: 6, fontSize: '0.72rem', padding: '2px 6px' }}>×{enq.quantity}</span>
+                      </td>
+                      <td>
+                        <span className="status-badge badge-emerald" style={{ fontSize: '0.72rem' }}>
+                          <ShieldCheck size={11} style={{ marginRight: 3 }} /> {enq.client_seriousness || 'Verified'}
+                        </span>
+                        {enq.verification_notes && (
+                          <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px', maxWidth: '140px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={enq.verification_notes}>
+                            {enq.verification_notes}
+                          </div>
+                        )}
                       </td>
                       <td>
                         {enq.supplier_cost ? (
@@ -178,7 +247,7 @@ export default function PurchaseDashboard() {
                             className={enq.supplier_cost ? "dash-btn dash-btn-secondary" : "dash-btn"}
                             onClick={() => handleOpenPricingModal(enq)}
                           >
-                            <IndianRupee size={14} /> {enq.supplier_cost ? 'Update Cost' : 'Enter Pricing'}
+                            <IndianRupee size={14} /> {enq.supplier_cost ? 'Update Cost' : 'Calculate & Send'}
                           </button>
                         )}
                       </td>
@@ -190,12 +259,12 @@ export default function PurchaseDashboard() {
           </div>
         </div>
 
-        {/* Pricing Side Panel */}
+        {/* Pricing Side Panel (Cost Estimation Drawer) */}
         {selectedEnquiry && (
-          <div className="dash-card animate-fade" style={{ border: '1px solid #cbdce8', boxShadow: 'var(--shadow-md)' }}>
+          <div className="dash-card animate-fade" style={{ border: '1px solid #cbdce8', boxShadow: 'var(--shadow-md)', alignSelf: 'start' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', paddingBottom: '10px', borderBottom: '1px solid #e2e8f0' }}>
-              <h3 style={{ margin: 0, padding: 0, border: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <DollarSign size={19} color="#18476c" /> Record Pricing
+              <h3 style={{ margin: 0, padding: 0, border: 'none', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.05rem' }}>
+                <DollarSign size={18} color="#18476c" /> Cost Estimation & Parts Check
               </h3>
               <button
                 type="button"
@@ -206,66 +275,82 @@ export default function PurchaseDashboard() {
               </button>
             </div>
 
-            <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '16px', fontSize: '0.84rem', color: '#475569' }}>
-              <div>Ref: <strong style={{ color: '#0f172a' }}>{selectedEnquiry.enquiry_no}</strong></div>
-              <div>Customer: <strong style={{ color: '#0f172a' }}>{selectedEnquiry.customer_name}</strong></div>
-              <div>Item: <strong style={{ color: '#0f172a' }}>{selectedEnquiry.part_code}</strong> (Qty: {selectedEnquiry.quantity})</div>
+            <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '16px', fontSize: '0.84rem' }}>
+              <div>Enquiry: <strong style={{ color: '#18476c' }}>{selectedEnquiry.enquiry_no}</strong></div>
+              <div>Customer: <strong>{selectedEnquiry.customer_name}</strong></div>
+              <div>Category: <span className="status-badge badge-blue" style={{ fontSize: '0.7rem' }}>{selectedEnquiry.category}</span></div>
+              <div>Part Code: <strong>{selectedEnquiry.part_code}</strong> (Qty: {selectedEnquiry.quantity})</div>
+              {selectedEnquiry.verification_notes && (
+                <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px dashed #cbd5e1', color: '#047857' }}>
+                  ✓ Sales Verified: {selectedEnquiry.verification_notes}
+                </div>
+              )}
             </div>
 
             <form onSubmit={handleSubmitPricing} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', color: '#334155', fontWeight: 600, marginBottom: '6px' }}>Supplier Cost Per Unit (₹) *</label>
+                <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                  Supplier Cost per Unit (₹) *
+                </label>
                 <input
                   type="number"
                   step="0.01"
+                  min="0"
                   required
-                  placeholder="e.g. 350.00"
+                  placeholder="0.00"
                   value={supplierCost}
                   onChange={e => setSupplierCost(e.target.value)}
                   style={{ width: '100%' }}
                 />
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', color: '#334155', fontWeight: 600, marginBottom: '6px' }}>Stock Availability Status *</label>
-                <select
-                  value={availability}
-                  onChange={e => setAvailability(e.target.value)}
-                  style={{ width: '100%' }}
-                >
-                  <option value="Available">Available in Warehouse</option>
-                  <option value="Supplier Ready">Supplier Stock Ready</option>
-                  <option value="Sourcing Required">Sourcing / Manufacturing Required</option>
-                  <option value="Backorder">Backorder</option>
-                </select>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                    Parts Availability *
+                  </label>
+                  <select
+                    value={availability}
+                    onChange={e => setAvailability(e.target.value)}
+                    style={{ width: '100%' }}
+                  >
+                    <option value="Available">Available (In Stock)</option>
+                    <option value="Procurement Required">Procurement Required</option>
+                    <option value="Backorder 1-2 Weeks">Backorder 1-2 Weeks</option>
+                    <option value="Custom Fabrication">Custom Fabrication</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                    Lead Time (Days) *
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={leadTime}
+                    onChange={e => setLeadTime(e.target.value)}
+                    style={{ width: '100%' }}
+                  />
+                </div>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', color: '#334155', fontWeight: 600, marginBottom: '6px' }}>Procurement Lead Time (Days) *</label>
-                <input
-                  type="number"
-                  min="1"
-                  required
-                  value={leadTime}
-                  onChange={e => setLeadTime(e.target.value)}
-                  style={{ width: '100%' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', color: '#334155', fontWeight: 600, marginBottom: '6px' }}>Supplier Reference / Notes</label>
+                <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                  Cost Calculation Notes & Vendor Terms
+                </label>
                 <textarea
-                  rows="2"
-                  placeholder="Vendor name, batch validity..."
+                  rows="3"
+                  placeholder="Vendor name, warranty terms, bulk discount, payment condition..."
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
                   style={{ width: '100%', resize: 'vertical' }}
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
-                <button type="submit" className="dash-btn" style={{ flex: 1, padding: '10px' }}>
-                  Save to Database
+              <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                <button type="submit" className="dash-btn" style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                  <Send size={15} /> Send Estimated Cost to Sales
                 </button>
                 <button
                   type="button"

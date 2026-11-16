@@ -621,6 +621,155 @@ export function buildInvoicePdf(enq) {
   return doc;
 }
 
+export function buildDeliveryChallanPdf(enq) {
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const W = doc.internal.pageSize.getWidth();
+  const H = doc.internal.pageSize.getHeight();
+  const M = 40;
+  const contentW = W - M * 2;
+
+  // Header Background Bar (Navy / Steel Blue)
+  doc.setFillColor(24, 71, 108);
+  doc.rect(M, 35, contentW, 55, 'F');
+
+  // Company Name & Delivery Challan Title
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.text(COMPANY_DETAILS.name, M + 14, 58);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text(`GSTIN: ${COMPANY_DETAILS.gstin} | PAN: ${COMPANY_DETAILS.pan}`, M + 14, 73);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(17);
+  doc.text('DELIVERY CHALLAN', W - M - 14, 62, { align: 'right' });
+  doc.setFontSize(8.5);
+  doc.setFont('helvetica', 'normal');
+  doc.text('GOODS DISPATCH CONSIGNMENT NOTE', W - M - 14, 76, { align: 'right' });
+
+  // Two-column Info Card
+  let y = 105;
+  doc.setDrawColor(203, 213, 225);
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(M, y, contentW, 95, 4, 4, 'FD');
+
+  // Left Column: Consignee / Deliver To
+  doc.setTextColor(30, 41, 59);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('DELIVER TO (CONSIGNEE):', M + 12, y + 18);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.text(enq.customer_name || 'Customer Name', M + 12, y + 34);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(71, 85, 105);
+  doc.text(`Contact: ${enq.contact_email || 'client@company.com'}`, M + 12, y + 49);
+  doc.text(`Phone: ${enq.contact_phone || '+91 9876543210'}`, M + 12, y + 62);
+  doc.text(`Buyer PO No: ${enq.po_number || 'PO-VERIFIED'} | Order: ${enq.order_no || 'SO-CONFIRMED'}`, M + 12, y + 76);
+
+  // Right Column: Challan & Transport Metadata
+  const midX = M + contentW / 2 + 10;
+  doc.setTextColor(30, 41, 59);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('TRANSPORT & CHALLAN DETAILS:', midX, y + 18);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(71, 85, 105);
+  doc.text(`Challan No: ${enq.challan_no || 'DC-2026-001'}`, midX, y + 34);
+  doc.text(`Dispatch Date: ${new Date().toLocaleDateString('en-IN')}`, midX, y + 48);
+  doc.text(`Transport Mode: ${(enq.transport_mode || 'Road').toUpperCase()}`, midX, y + 62);
+  doc.text(`Carrier: ${enq.transporter || 'Express Cargo'} | Tracking: ${enq.tracking_no || 'TRK-PENDING'}`, midX, y + 76);
+
+  // Items Table
+  y = 220;
+  doc.setFillColor(241, 245, 249);
+  doc.rect(M, y, contentW, 25, 'F');
+  doc.setDrawColor(203, 213, 225);
+  doc.line(M, y + 25, W - M, y + 25);
+
+  doc.setTextColor(30, 41, 59);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.text('ITEM CODE / SKU', M + 10, y + 16);
+  doc.text('CATEGORY & DESCRIPTION', M + 150, y + 16);
+  doc.text('INSPECTION', M + 340, y + 16);
+  doc.text('QTY DISPATCHED', W - M - 10, y + 16, { align: 'right' });
+
+  // Item Row
+  y += 25;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(51, 65, 85);
+
+  doc.text(enq.part_code || 'PRT-SKU', M + 10, y + 20);
+  doc.text(`${enq.category || 'General'} - Inspected Stock`, M + 150, y + 20);
+  doc.setTextColor(5, 150, 105);
+  doc.text(enq.inspection_status || 'Verified Ready', M + 340, y + 20);
+  doc.setTextColor(30, 41, 59);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`${enq.quantity || 1} Units`, W - M - 10, y + 20, { align: 'right' });
+
+  // Underline
+  y += 32;
+  doc.setDrawColor(226, 232, 240);
+  doc.line(M, y, W - M, y);
+
+  // Dispatch & Receipt Terms
+  y += 25;
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(M, y, contentW, 90, 4, 4, 'FD');
+  doc.setTextColor(30, 41, 59);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9.5);
+  doc.text('DISPATCH DECLARATION & TERMS:', M + 12, y + 18);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(71, 85, 105);
+  doc.text('1. Goods listed above have undergone warehouse pick-pack and sales readiness inspection.', M + 12, y + 34);
+  doc.text(`2. Shipment dispatched via ${enq.transport_mode || 'Road'} transport under carrier consignment note.`, M + 12, y + 48);
+  doc.text('3. Any shortage, transit loss or damage must be notified within 24 hours of delivery.', M + 12, y + 62);
+  doc.text('4. Official Delivery Challan issued subject to delivery confirmation at destination.', M + 12, y + 76);
+
+  // Signatures Row
+  const sigY = H - 110;
+  // Left: Receiver Sign
+  doc.setDrawColor(203, 213, 225);
+  doc.line(M, sigY + 35, M + 160, sigY + 35);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.setTextColor(30, 41, 59);
+  doc.text("Receiver's Signature & Seal", M + 80, sigY + 48, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(100, 116, 139);
+  doc.text('(Date & Received with thanks)', M + 80, sigY + 60, { align: 'center' });
+
+  // Right: Company Sign
+  doc.line(W - M - 160, sigY + 35, W - M, sigY + 35);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.setTextColor(30, 41, 59);
+  doc.text(`For ${COMPANY_DETAILS.name}`, W - M - 80, sigY + 20, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(100, 116, 139);
+  doc.text('Authorised Signatory / Logistics Desk', W - M - 80, sigY + 48, { align: 'center' });
+
+  // Footer Note
+  doc.setFontSize(7.5);
+  doc.setTextColor(148, 163, 184);
+  doc.text(`Delivery Challan generated by NexFlow ERP Logistics Hub. Valid goods-in-transit document.`, W / 2, H - 25, { align: 'center' });
+
+  return doc;
+}
+
 export function previewDocumentPdf(doc) {
   const blobUrl = doc.output('bloburl');
   window.open(blobUrl, '_blank');
