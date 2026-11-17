@@ -847,6 +847,364 @@ export function buildDeliveryChallanPdf(enq) {
   return doc;
 }
 
+export function buildOpcPdf(data) {
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const W = doc.internal.pageSize.getWidth();
+  const H = doc.internal.pageSize.getHeight();
+  const M = 36;
+  const contentW = W - M * 2;
+  const teal = [0, 128, 128];
+  const navy = [15, 23, 42];
+  const dark = [30, 41, 59];
+  const grey = [100, 116, 139];
+  const lightBg = [248, 250, 252];
+  const borderCol = [203, 213, 225];
+
+  // Top Accent Bar
+  doc.setFillColor(...navy);
+  doc.rect(M, 28, contentW, 58, 'F');
+
+  // Logo circle
+  doc.setFillColor(...teal);
+  doc.circle(M + 28, 57, 20, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.text('N', M + 28, 62, { align: 'center' });
+
+  // Company info
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.text(COMPANY_DETAILS.name, M + 56, 50);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(203, 213, 225);
+  doc.text(`${COMPANY_DETAILS.tagline} | GSTIN: ${COMPANY_DETAILS.gstin}`, M + 56, 64);
+  doc.text(`${COMPANY_DETAILS.cityStatePin} | ${COMPANY_DETAILS.phone} | ${COMPANY_DETAILS.email}`, M + 56, 76);
+
+  // Document Title on Right
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13);
+  doc.setTextColor(45, 212, 191); // Teal bright
+  doc.text('ORDER PROCESSING CONFIRMATION', W - M - 12, 50, { align: 'right' });
+  doc.setFontSize(8.5);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(226, 232, 240);
+  doc.text('(OPC - INTERNAL & CLIENT COPY)', W - M - 12, 64, { align: 'right' });
+
+  // Status Badge on Header Right
+  const currentStatus = data.opc_status || data.status || 'Draft';
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(255, 255, 255);
+  doc.text(`STATUS: ${currentStatus.toUpperCase()}`, W - M - 12, 77, { align: 'right' });
+
+  /* ── METADATA BOX (OPC No, Date, Quotation Ref, Order Ref) ── */
+  let y = 94;
+  doc.setFillColor(...lightBg);
+  doc.setDrawColor(...borderCol);
+  doc.setLineWidth(0.75);
+  doc.roundedRect(M, y, contentW, 36, 3, 3, 'FD');
+
+  const colW = contentW / 4;
+  const opcDateStr = new Date(data.opc_date || data.created_at || Date.now()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const opcNoStr = data.opc_no || `OPC-${new Date().getFullYear()}-0001`;
+  const quoteRef = data.quotation_no || 'QT-CONFIRMED';
+  const orderRef = data.order_reference || data.po_number || data.order_no || 'PO-PENDING';
+
+  const metaItems = [
+    { label: 'OPC NUMBER', val: opcNoStr, bold: true, color: teal },
+    { label: 'OPC DATE', val: opcDateStr, bold: false, color: dark },
+    { label: 'QUOTATION REF', val: quoteRef, bold: false, color: dark },
+    { label: 'ORDER / PO REF', val: orderRef, bold: true, color: [180, 83, 9] }
+  ];
+
+  metaItems.forEach((m, i) => {
+    const x = M + i * colW + 10;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...grey);
+    doc.text(m.label, x, y + 14);
+
+    doc.setFont('helvetica', m.bold ? 'bold' : 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...m.color);
+    doc.text(m.val, x, y + 27);
+
+    if (i < 3) {
+      doc.setDrawColor(...borderCol);
+      doc.line(M + (i + 1) * colW, y + 5, M + (i + 1) * colW, y + 31);
+    }
+  });
+
+  /* ── CLIENT DETAILS SECTION (Company, Contact, Billing & Delivery Addresses) ── */
+  y += 44;
+  const clientBoxH = 88;
+  doc.setFillColor(...lightBg);
+  doc.setDrawColor(...borderCol);
+  doc.roundedRect(M, y, contentW, clientBoxH, 3, 3, 'FD');
+
+  const halfW = contentW / 2;
+  const clientComp = data.opc_company_name || data.company_name || data.customer_name || 'Client Enterprise';
+  const contactPerson = data.opc_contact_person || data.contact_person || data.customer_name || 'Authorized Buyer';
+  const phone = data.opc_contact_phone || data.contact_phone || '+91 98765 43210';
+  const email = data.opc_contact_email || data.contact_email || 'client@enterprise.com';
+  const billAddr = data.opc_billing_address || data.billing_address || 'MIDC Industrial Estate, Phase II, Pune, MH 411018';
+  const delivAddr = data.opc_delivery_address || data.delivery_address || 'Customer Works / Plant Site, Pune, MH';
+
+  // Left side: Client & Contact Person
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.setTextColor(...navy);
+  doc.text('CLIENT & CONTACT DETAILS', M + 10, y + 15);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10.5);
+  doc.setTextColor(...teal);
+  doc.text(clientComp, M + 10, y + 30);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(...dark);
+  doc.text(`Contact Person: ${contactPerson}`, M + 10, y + 44);
+  doc.setTextColor(...grey);
+  doc.text(`Mobile: ${phone}  |  Email: ${email}`, M + 10, y + 57);
+  doc.text(`Enquiry No: ${data.enquiry_no || 'ENQ-DIRECT'}`, M + 10, y + 70);
+
+  // Vertical separator
+  doc.setDrawColor(...borderCol);
+  doc.line(M + halfW, y + 6, M + halfW, y + clientBoxH - 6);
+
+  // Right side: Billing & Delivery Address
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.setTextColor(...navy);
+  doc.text('BILLING & DELIVERY ADDRESS', M + halfW + 10, y + 15);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(...dark);
+  doc.text('Billing Address:', M + halfW + 10, y + 30);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...grey);
+  const billLines = doc.splitTextToSize(billAddr, halfW - 20);
+  doc.text(billLines, M + halfW + 72, y + 30);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...dark);
+  doc.text('Delivery Site:', M + halfW + 10, y + 54);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...grey);
+  const delivLines = doc.splitTextToSize(delivAddr, halfW - 20);
+  doc.text(delivLines, M + halfW + 72, y + 54);
+
+  /* ── PRODUCT DETAILS TABLE ── */
+  y += clientBoxH + 10;
+  doc.setFillColor(...navy);
+  doc.rect(M, y, contentW, 22, 'F');
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.text('S.NO', M + 8, y + 15);
+  doc.text('PRODUCT / PART CODE & SPECIFICATION', M + 42, y + 15);
+  doc.text('CATEGORY', M + 260, y + 15);
+  doc.text('QTY', M + 345, y + 15, { align: 'center' });
+  doc.text('UNIT RATE (Rs.)', M + 430, y + 15, { align: 'right' });
+  doc.text('AMOUNT (Rs.)', W - M - 8, y + 15, { align: 'right' });
+
+  // Product Row
+  y += 22;
+  const prodName = data.opc_product_name || data.product_name || data.part_code || 'Standard Item SKU';
+  const category = data.opc_category || data.category || 'Mechanical';
+  const description = data.opc_description || data.description || data.notes || 'Industrial standard grade verified part.';
+  const qty = Number(data.opc_quantity || data.quantity || 1);
+  const unitPrice = Number(data.opc_unit_price || data.unit_price || data.selling_price || 0);
+  const subtotal = Number(data.opc_subtotal || data.subtotal || qty * unitPrice);
+  const discountPercent = Number(data.opc_discount_percent ?? data.discount_percent ?? 0);
+  const discountVal = (subtotal * discountPercent) / 100;
+  const taxableVal = subtotal - discountVal;
+  const gstPercent = Number(data.opc_gst_percent ?? data.gst_percent ?? 18);
+  const gstVal = Number(data.opc_gst_amount ?? data.gst_amount ?? (taxableVal * (gstPercent / 100)));
+  const transportCharges = Number(data.opc_transport_charges ?? data.transport_charges ?? 0);
+  const grandTotal = Number(data.opc_grand_total ?? data.grand_total ?? (taxableVal + gstVal + transportCharges));
+
+  const rowH = 46;
+  doc.setFillColor(255, 255, 255);
+  doc.rect(M, y, contentW, rowH, 'F');
+  doc.setDrawColor(...borderCol);
+  doc.line(M, y + rowH, W - M, y + rowH);
+
+  doc.setTextColor(...dark);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text('1', M + 14, y + 18);
+
+  doc.text(prodName, M + 42, y + 16);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(...grey);
+  const descLines = doc.splitTextToSize(description, 210);
+  doc.text(descLines, M + 42, y + 28);
+
+  // Category
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(...dark);
+  doc.text(category, M + 260, y + 20);
+
+  // Quantity
+  doc.setFont('helvetica', 'bold');
+  doc.text(`${qty} Units`, M + 345, y + 20, { align: 'center' });
+
+  // Unit Price & Subtotal
+  doc.text(fmtCurrency(unitPrice), M + 430, y + 20, { align: 'right' });
+  doc.text(fmtCurrency(subtotal), W - M - 8, y + 20, { align: 'right' });
+
+  /* ── COMMERCIAL DETAILS & TOTALS + TERMS & REMARKS ── */
+  y += rowH + 12;
+  const termsBoxW = 280;
+  const totalsBoxW = contentW - termsBoxW - 15;
+  const totalsX = W - M - totalsBoxW;
+
+  // Left: Payment Terms, Delivery Details & Remarks Box
+  doc.setFillColor(...lightBg);
+  doc.setDrawColor(...borderCol);
+  doc.roundedRect(M, y, termsBoxW, 140, 3, 3, 'FD');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.setTextColor(...navy);
+  doc.text('TERMS, DELIVERY & SPECIAL INSTRUCTIONS', M + 10, y + 15);
+
+  const paymentTerms = data.opc_payment_terms || data.payment_terms || '30 Days Net from Delivery';
+  const deliveryTerms = data.opc_delivery_terms || data.delivery_terms || 'Door Delivery / Standard Freight Included';
+  const deliverySchedule = data.opc_delivery_schedule || data.delivery_schedule || '7-10 Business Days after Confirmation';
+  const remarks = data.opc_remarks || data.remarks || 'Standard packaging. Inspection and stock verification required prior to dispatch.';
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...dark);
+  doc.text('Payment Terms:', M + 10, y + 32);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...grey);
+  doc.text(paymentTerms, M + 85, y + 32);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...dark);
+  doc.text('Delivery Terms:', M + 10, y + 48);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...grey);
+  doc.text(deliveryTerms, M + 85, y + 48);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...dark);
+  doc.text('Delivery Schedule:', M + 10, y + 64);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...grey);
+  doc.text(deliverySchedule, M + 85, y + 64);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...dark);
+  doc.text('Remarks / Notes:', M + 10, y + 80);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...grey);
+  const remarkLines = doc.splitTextToSize(remarks, termsBoxW - 20);
+  doc.text(remarkLines, M + 10, y + 93);
+
+  // Right: Commercial Calculation Table
+  const calcRows = [
+    { label: 'Product Subtotal:', val: fmtCurrency(subtotal) },
+    ...(discountPercent > 0 ? [{ label: `Discount (${discountPercent}%):`, val: `- ${fmtCurrency(discountVal)}` }] : []),
+    { label: 'Taxable Amount:', val: fmtCurrency(taxableVal) },
+    { label: `GST (${gstPercent}%):`, val: fmtCurrency(gstVal) },
+    { label: 'Transportation Charges:', val: fmtCurrency(transportCharges) }
+  ];
+
+  calcRows.forEach((r, idx) => {
+    const rowY = y + idx * 16 + 10;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(...dark);
+    doc.text(r.label, totalsX, rowY);
+    doc.setFont('helvetica', 'bold');
+    doc.text(r.val, W - M - 8, rowY, { align: 'right' });
+  });
+
+  // Grand Total Highlight Bar
+  const gtY = y + calcRows.length * 16 + 16;
+  doc.setFillColor(...navy);
+  doc.roundedRect(totalsX - 6, gtY, totalsBoxW + 6, 26, 3, 3, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('GRAND TOTAL:', totalsX + 4, gtY + 17);
+  doc.text(fmtCurrency(grandTotal), W - M - 8, gtY + 17, { align: 'right' });
+
+  /* ── SIGNATURES SECTION ── */
+  const sigY = H - 120;
+  const sigBoxW = (contentW - 30) / 2;
+
+  // Left Signature: Salesperson Prepared By
+  doc.setDrawColor(...borderCol);
+  doc.setFillColor(...lightBg);
+  doc.roundedRect(M, sigY, sigBoxW, 70, 3, 3, 'FD');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(...navy);
+  doc.text('PREPARED & VERIFIED BY (SALESPERSON)', M + 12, sigY + 15);
+
+  const salesRep = data.opc_salesperson_name || data.salesperson_name || 'Sales Executive';
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(...dark);
+  doc.text(salesRep, M + 12, sigY + 38);
+
+  doc.setDrawColor(...borderCol);
+  doc.line(M + 12, sigY + 52, M + sigBoxW - 12, sigY + 52);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...grey);
+  doc.text('Sales Department Signature & Date', M + 12, sigY + 62);
+
+  // Right Signature: Authorized Approval
+  const rightSigX = M + sigBoxW + 30;
+  doc.setDrawColor(...borderCol);
+  doc.setFillColor(...lightBg);
+  doc.roundedRect(rightSigX, sigY, sigBoxW, 70, 3, 3, 'FD');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(...navy);
+  doc.text('AUTHORIZED APPROVAL SIGNATORY', rightSigX + 12, sigY + 15);
+
+  const approver = data.opc_approved_by || data.approved_by || 'Operations / Commercial Head';
+  const approvalDate = data.opc_approved_at || data.approved_at
+    ? new Date(data.opc_approved_at || data.approved_at).toLocaleDateString('en-IN')
+    : 'Authorized Sign-off';
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(...teal);
+  doc.text(`${approver}  (${approvalDate})`, rightSigX + 12, sigY + 38);
+
+  doc.setDrawColor(...borderCol);
+  doc.line(rightSigX + 12, sigY + 52, rightSigX + sigBoxW - 12, sigY + 52);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...grey);
+  doc.text(`Official Commercial Seal & Authorized Stamp`, rightSigX + 12, sigY + 62);
+
+  // Footer Note
+  doc.setFontSize(7.5);
+  doc.setTextColor(148, 163, 184);
+  doc.text(`Order Processing Confirmation (OPC) generated by NexFlow ERP. Mandatory store fulfillment & stock inspection document.`, W / 2, H - 24, { align: 'center' });
+
+  return doc;
+}
+
 export function previewDocumentPdf(doc) {
   const blobUrl = doc.output('bloburl');
   window.open(blobUrl, '_blank');

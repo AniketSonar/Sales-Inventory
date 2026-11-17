@@ -1,6 +1,6 @@
 import React from 'react';
-import { X, Download, ExternalLink, Printer, FileText, CheckCircle2, Building, ShieldCheck, Truck } from 'lucide-react';
-import { COMPANY_DETAILS, BANK_DETAILS, buildQuotationPdf, buildInvoicePdf, buildSalesOrderPdf, buildDeliveryChallanPdf, previewDocumentPdf, downloadDocumentPdf } from '../../utils/documentGenerator';
+import { X, Download, ExternalLink, Printer, FileText, CheckCircle2, Building, ShieldCheck, Truck, CheckCheck } from 'lucide-react';
+import { COMPANY_DETAILS, BANK_DETAILS, buildQuotationPdf, buildInvoicePdf, buildSalesOrderPdf, buildDeliveryChallanPdf, buildOpcPdf, previewDocumentPdf, downloadDocumentPdf } from '../../utils/documentGenerator';
 
 export default function DocumentModal({ isOpen, onClose, type = 'quotation', data }) {
   if (!isOpen || !data) return null;
@@ -9,6 +9,7 @@ export default function DocumentModal({ isOpen, onClose, type = 'quotation', dat
   const isOrder = type === 'order' || type === 'sales_order' || type === 'po';
   const isInvoice = type === 'invoice';
   const isChallan = type === 'challan';
+  const isOpc = type === 'opc';
 
   const docTitle = isQuotation 
     ? 'OFFICIAL QUOTATION' 
@@ -16,7 +17,9 @@ export default function DocumentModal({ isOpen, onClose, type = 'quotation', dat
       ? 'SALES ORDER CONFIRMATION' 
       : isChallan
         ? 'DELIVERY CHALLAN'
-        : 'TAX INVOICE';
+        : isOpc
+          ? 'ORDER PROCESSING CONFIRMATION (OPC)'
+          : 'TAX INVOICE';
 
   const docNumber = isQuotation 
     ? (data.quotation_no || `QT-${new Date().getFullYear()}-001`)
@@ -24,17 +27,20 @@ export default function DocumentModal({ isOpen, onClose, type = 'quotation', dat
       ? (data.order_no || `SO-${new Date().getFullYear()}-001`)
       : isChallan
         ? (data.challan_no || `DC-${new Date().getFullYear()}-001`)
-        : (data.invoice_no || `INV-${new Date().getFullYear()}-001`);
+        : isOpc
+          ? (data.opc_no || `OPC-${new Date().getFullYear()}-001`)
+          : (data.invoice_no || `INV-${new Date().getFullYear()}-001`);
 
-  const qty = Number(data.quantity || 1);
-  const unitPrice = Number(data.selling_price || (data.supplier_cost ? data.supplier_cost * 1.25 : 1000));
-  const subtotal = qty * unitPrice;
-  const discountPercent = Number(data.discount_percent || 0);
+  const qty = Number(data.opc_quantity || data.quantity || 1);
+  const unitPrice = Number(data.opc_unit_price || data.unit_price || data.selling_price || (data.supplier_cost ? data.supplier_cost * 1.25 : 1000));
+  const subtotal = Number(data.opc_subtotal || data.subtotal || qty * unitPrice);
+  const discountPercent = Number(data.opc_discount_percent ?? data.discount_percent ?? 0);
   const discountVal = (subtotal * discountPercent) / 100;
   const taxableVal = subtotal - discountVal;
-  const cgstVal = taxableVal * 0.09;
-  const sgstVal = taxableVal * 0.09;
-  const grandTotal = taxableVal + cgstVal + sgstVal;
+  const gstPercent = Number(data.opc_gst_percent ?? data.gst_percent ?? 18);
+  const gstVal = Number(data.opc_gst_amount ?? data.gst_amount ?? (taxableVal * (gstPercent / 100)));
+  const transportCharges = Number(data.opc_transport_charges ?? data.transport_charges ?? 0);
+  const grandTotal = Number(data.opc_grand_total ?? data.grand_total ?? (taxableVal + gstVal + transportCharges));
 
   const fmtCurrency = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -42,12 +48,13 @@ export default function DocumentModal({ isOpen, onClose, type = 'quotation', dat
     if (isQuotation) return buildQuotationPdf(data);
     if (isOrder) return buildSalesOrderPdf(data);
     if (isChallan) return buildDeliveryChallanPdf(data);
+    if (isOpc) return buildOpcPdf(data);
     return buildInvoicePdf(data);
   };
 
   const handleDownload = () => {
     const doc = getDoc();
-    const prefix = isQuotation ? 'Quotation' : isOrder ? 'SalesOrder' : isChallan ? 'DeliveryChallan' : 'Invoice';
+    const prefix = isQuotation ? 'Quotation' : isOrder ? 'SalesOrder' : isChallan ? 'DeliveryChallan' : isOpc ? 'OPC' : 'Invoice';
     downloadDocumentPdf(doc, `${prefix}-${docNumber}.pdf`);
   };
 
@@ -57,7 +64,15 @@ export default function DocumentModal({ isOpen, onClose, type = 'quotation', dat
   };
 
   const handlePrint = () => {
-    window.print();
+    const doc = getDoc();
+    doc.autoPrint();
+    const blobUrl = doc.output('bloburl');
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = blobUrl;
+    document.body.appendChild(iframe);
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
   };
 
   return (
@@ -110,6 +125,25 @@ export default function DocumentModal({ isOpen, onClose, type = 'quotation', dat
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              onClick={handlePrint}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '7px 12px',
+                background: '#334155',
+                color: '#f8fafc',
+                border: '1px solid #475569',
+                borderRadius: '6px',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+              title="Print document"
+            >
+              <Printer size={14} /> Print
+            </button>
             <button
               onClick={handleOpenNewTab}
               style={{
@@ -219,16 +253,31 @@ export default function DocumentModal({ isOpen, onClose, type = 'quotation', dat
             }}>
               <div>
                 <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '6px' }}>
-                  {isQuotation ? 'QUOTATION TO (CLIENT):' : isOrder ? 'BUYER / ORDER TO:' : 'BILLED TO (BUYER):'}
+                  {isQuotation ? 'QUOTATION TO (CLIENT):' : isOrder ? 'BUYER / ORDER TO:' : isOpc ? 'CLIENT & DELIVERY DETAILS:' : 'BILLED TO (BUYER):'}
                 </div>
-                <div style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{data.customer_name || 'Client Name'}</div>
+                <div style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{data.opc_company_name || data.customer_name || 'Client Name'}</div>
+                {isOpc && (data.opc_contact_person || data.contact_person) && (
+                  <div style={{ fontSize: '0.82rem', color: '#1e293b', fontWeight: 600, marginTop: '2px' }}>
+                    Attn: {data.opc_contact_person || data.contact_person}
+                  </div>
+                )}
                 <div style={{ fontSize: '0.82rem', color: '#475569', marginTop: '3px' }}>
-                  Email: {data.contact_email || 'client@company.com'}
+                  Email: {data.opc_contact_email || data.contact_email || 'client@company.com'}
                 </div>
                 <div style={{ fontSize: '0.82rem', color: '#475569' }}>
-                  Phone: {data.contact_phone || '+91 9876543210'}
+                  Phone: {data.opc_contact_phone || data.contact_phone || '+91 9876543210'}
                 </div>
-                {data.po_number && (
+                {isOpc && (
+                  <>
+                    <div style={{ fontSize: '0.78rem', color: '#475569', marginTop: '6px' }}>
+                      <strong>Billing Address:</strong> {data.opc_billing_address || data.billing_address || 'MIDC Industrial Estate, Pune'}
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: '#475569', marginTop: '3px' }}>
+                      <strong>Delivery Site:</strong> {data.opc_delivery_address || data.delivery_address || 'Customer Works, Pune'}
+                    </div>
+                  </>
+                )}
+                {data.po_number && !isOpc && (
                   <div style={{ fontSize: '0.84rem', color: '#b45309', fontWeight: 700, marginTop: '5px', background: '#fef3c7', padding: '3px 8px', borderRadius: '4px', display: 'inline-block' }}>
                     Customer PO: {data.po_number}
                   </div>
@@ -243,18 +292,34 @@ export default function DocumentModal({ isOpen, onClose, type = 'quotation', dat
                   <tbody>
                     <tr>
                       <td style={{ color: '#64748b', paddingBottom: '4px' }}>
-                        {isQuotation ? 'Quotation No:' : isOrder ? 'Sales Order No:' : 'Invoice No:'}
+                        {isQuotation ? 'Quotation No:' : isOrder ? 'Sales Order No:' : isOpc ? 'OPC No:' : 'Invoice No:'}
                       </td>
                       <td style={{ fontWeight: 700, color: '#0f172a', textAlign: 'right' }}>{docNumber}</td>
                     </tr>
                     <tr>
                       <td style={{ color: '#64748b', paddingBottom: '4px' }}>Date:</td>
-                      <td style={{ fontWeight: 600, textAlign: 'right' }}>{new Date().toLocaleDateString('en-IN')}</td>
+                      <td style={{ fontWeight: 600, textAlign: 'right' }}>
+                        {new Date(data.opc_date || data.created_at || Date.now()).toLocaleDateString('en-IN')}
+                      </td>
                     </tr>
                     <tr>
-                      <td style={{ color: '#64748b', paddingBottom: '4px' }}>Enquiry Ref:</td>
-                      <td style={{ fontWeight: 600, textAlign: 'right' }}>{data.enquiry_no || 'ENQ-DIRECT'}</td>
+                      <td style={{ color: '#64748b', paddingBottom: '4px' }}>Quotation Ref:</td>
+                      <td style={{ fontWeight: 600, textAlign: 'right' }}>{data.quotation_no || 'QT-CONFIRMED'}</td>
                     </tr>
+                    <tr>
+                      <td style={{ color: '#64748b', paddingBottom: '4px' }}>Order Reference:</td>
+                      <td style={{ fontWeight: 700, color: '#b45309', textAlign: 'right' }}>
+                        {data.opc_order_reference || data.order_reference || data.po_number || data.order_no || 'PO-DIRECT'}
+                      </td>
+                    </tr>
+                    {isOpc && (
+                      <tr>
+                        <td style={{ color: '#64748b', paddingBottom: '4px' }}>OPC Status:</td>
+                        <td style={{ fontWeight: 700, textAlign: 'right', color: '#0284c7' }}>
+                          {data.opc_status || data.status || 'Draft'}
+                        </td>
+                      </tr>
+                    )}
                     {isOrder && (
                       <tr>
                         <td style={{ color: '#64748b', paddingBottom: '4px' }}>Store Status:</td>
@@ -310,13 +375,22 @@ export default function DocumentModal({ isOpen, onClose, type = 'quotation', dat
               {/* Terms & Bank */}
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>
-                  Terms &amp; Statutory Notes:
+                  {isOpc ? 'TERMS & SPECIAL INSTRUCTIONS:' : 'Terms & Statutory Notes:'}
                 </div>
-                <div style={{ fontSize: '0.76rem', color: '#64748b', lineHeight: 1.5, marginBottom: '14px' }}>
-                  1. Payment terms: 50% advance along with PO, balance before delivery.<br />
-                  2. Goods dispatched with carrier tracking docket.<br />
-                  3. Standard 12 months technical warranty against defects.
-                </div>
+                {isOpc ? (
+                  <div style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.6, marginBottom: '14px', background: '#f8fafc', padding: '12px 14px', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
+                    <div><strong>Payment Terms:</strong> {data.opc_payment_terms || data.payment_terms || '30 Days Net from Delivery'}</div>
+                    <div><strong>Delivery Terms:</strong> {data.opc_delivery_terms || data.delivery_terms || 'Door Delivery / Standard Freight Included'}</div>
+                    <div><strong>Delivery Schedule:</strong> {data.opc_delivery_schedule || data.delivery_schedule || '7-10 Business Days after Confirmation'}</div>
+                    <div><strong>Remarks:</strong> {data.opc_remarks || data.remarks || 'Standard packaging. Mandatory store fulfillment inspection before dispatch.'}</div>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '0.76rem', color: '#64748b', lineHeight: 1.5, marginBottom: '14px' }}>
+                    1. Payment terms: 50% advance along with PO, balance before delivery.<br />
+                    2. Goods dispatched with carrier tracking docket.<br />
+                    3. Standard 12 months technical warranty against defects.
+                  </div>
+                )}
 
                 <div style={{ background: '#f8fafc', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}>
                   <strong style={{ color: '#0f172a', display: 'block', marginBottom: '2px' }}>Remittance Account Details:</strong>
@@ -347,13 +421,15 @@ export default function DocumentModal({ isOpen, onClose, type = 'quotation', dat
                         <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600 }}>{fmtCurrency(taxableVal)}</td>
                       </tr>
                       <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '8px 12px', color: '#64748b' }}>CGST @ 9%:</td>
-                        <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600 }}>{fmtCurrency(cgstVal)}</td>
+                        <td style={{ padding: '8px 12px', color: '#64748b' }}>GST ({gstPercent}%):</td>
+                        <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600 }}>{fmtCurrency(gstVal)}</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '8px 12px', color: '#64748b' }}>SGST @ 9%:</td>
-                        <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600 }}>{fmtCurrency(sgstVal)}</td>
-                      </tr>
+                      {isOpc && (
+                        <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '8px 12px', color: '#64748b' }}>Transport Charges:</td>
+                          <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600 }}>{fmtCurrency(transportCharges)}</td>
+                        </tr>
+                      )}
                       <tr style={{ background: '#1e293b', color: '#ffffff' }}>
                         <td style={{ padding: '10px 12px', fontWeight: 700 }}>Total Payable:</td>
                         <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 800, fontSize: '0.95rem' }}>{fmtCurrency(grandTotal)}</td>
@@ -365,13 +441,23 @@ export default function DocumentModal({ isOpen, onClose, type = 'quotation', dat
             </div>
 
             {/* Signature Area */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '20px', borderTop: '1px dashed #cbd5e1' }}>
+            <div style={{ display: 'flex', justifyContent: isOpc ? 'space-between' : 'flex-end', paddingTop: '20px', borderTop: '1px dashed #cbd5e1' }}>
+              {isOpc && (
+                <div style={{ textAlign: 'center', width: '220px' }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a', marginBottom: '35px' }}>
+                    Prepared By: {data.opc_salesperson_name || data.salesperson_name || 'Salesperson'}
+                  </div>
+                  <div style={{ borderTop: '1px solid #94a3b8', paddingTop: '4px', fontSize: '0.78rem', color: '#64748b' }}>
+                    Sales Department Verification
+                  </div>
+                </div>
+              )}
               <div style={{ textAlign: 'center', width: '220px' }}>
                 <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a', marginBottom: '35px' }}>
-                  For {COMPANY_DETAILS.name}
+                  {isOpc && (data.opc_approved_by || data.approved_by) ? `Approved By: ${data.opc_approved_by || data.approved_by}` : `For ${COMPANY_DETAILS.name}`}
                 </div>
                 <div style={{ borderTop: '1px solid #94a3b8', paddingTop: '4px', fontSize: '0.78rem', color: '#64748b' }}>
-                  Authorised Signatory
+                  {isOpc ? 'Authorized Approval Signatory' : 'Authorised Signatory'}
                 </div>
               </div>
             </div>

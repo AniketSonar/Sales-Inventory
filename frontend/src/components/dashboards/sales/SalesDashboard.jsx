@@ -29,7 +29,8 @@ import {
   PackageCheck,
   History,
   Navigation,
-  CheckSquare
+  CheckSquare,
+  Edit3
 } from 'lucide-react';
 import { useLiveSync } from '../../../utils/useLiveSync';
 
@@ -39,11 +40,13 @@ const getWhatsAppUrl = (phone, message) => {
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
 };
 import DocumentModal from '../../common/DocumentModal';
+import OpcModal from '../../common/OpcModal';
 import {
   buildQuotationPdf,
   buildInvoicePdf,
   buildSalesOrderPdf,
   buildDeliveryChallanPdf,
+  buildOpcPdf,
   downloadDocumentPdf
 } from '../../../utils/documentGenerator';
 
@@ -90,6 +93,9 @@ export default function SalesDashboard() {
 
   // Document Preview Modal
   const [previewModal, setPreviewModal] = useState({ isOpen: false, type: 'quotation', data: null });
+
+  // OPC Modal state
+  const [opcModal, setOpcModal] = useState({ isOpen: false, enquiry: null });
 
   // Timeline / History Modal
   const [timelineModal, setTimelineModal] = useState({ isOpen: false, item: null, history: [], followups: [], loading: false });
@@ -366,7 +372,16 @@ export default function SalesDashboard() {
       return <span className="status-badge badge-amber"><PackageCheck size={13} /> Store Packed - Inspect Stock</span>;
     }
     if (status.includes('Approved - Forwarded to Store')) {
-      return <span className="status-badge badge-blue"><FileCheck size={13} /> Store Handover</span>;
+      return <span className="status-badge badge-blue"><FileCheck size={13} /> OPC Sent to Store</span>;
+    }
+    if (status.includes('OPC Stock Verified')) {
+      return <span className="status-badge badge-blue"><ShieldCheck size={13} /> OPC Stock Verified</span>;
+    }
+    if (status.includes('OPC Pending Approval')) {
+      return <span className="status-badge badge-amber"><Clock size={13} /> OPC Pending Approval</span>;
+    }
+    if (status.includes('OPC Draft')) {
+      return <span className="status-badge badge-slate"><FileText size={13} /> OPC Draft</span>;
     }
     if (status.includes('Quotation Sent')) {
       return <span className="status-badge badge-blue"><Send size={13} /> Quote Sent</span>;
@@ -436,8 +451,8 @@ export default function SalesDashboard() {
       // 2. Cost quotes received from purchase -> quotation generation and client approval follow-up
       list = list.filter(e => e.supplier_cost && !e.order_no);
     } else if (activeTab === 'customer-pos') {
-      // 3. Customer POs, orders, and forwarding approved enquiries to Store
-      list = list.filter(e => e.quotation_no && !e.dispatch_status?.includes('Delivered'));
+      // 3. Customer POs, OPCs, and forwarding approved enquiries to Store
+      list = list.filter(e => (e.quotation_no || e.opc_no) && !e.dispatch_status?.includes('Delivered'));
     } else if (activeTab === 'transport') {
       // 4. Transportation (Road, Air, Water), Delivery Challan, and tracking until delivery
       list = list.filter(e => e.order_no || e.store_status?.includes('Packed') || e.challan_no);
@@ -450,7 +465,8 @@ export default function SalesDashboard() {
         (e.customer_name && e.customer_name.toLowerCase().includes(q)) ||
         (e.part_code && e.part_code.toLowerCase().includes(q)) ||
         (e.category && e.category.toLowerCase().includes(q)) ||
-        (e.challan_no && e.challan_no.toLowerCase().includes(q))
+        (e.challan_no && e.challan_no.toLowerCase().includes(q)) ||
+        (e.opc_no && e.opc_no.toLowerCase().includes(q))
       );
     }
 
@@ -706,10 +722,90 @@ export default function SalesDashboard() {
                       )}
                     </td>
                     <td>
-                      {enq.order_no ? (
+                      {enq.order_no || enq.opc_no ? (
                         <div>
-                          <span style={{ color: '#18476c', fontWeight: 700, fontSize: '0.85rem' }}>{enq.order_no}</span>
-                          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>PO: {enq.po_number}</div>
+                          {enq.order_no && (
+                            <>
+                              <span style={{ color: '#18476c', fontWeight: 700, fontSize: '0.85rem' }}>{enq.order_no}</span>
+                              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>PO: {enq.po_number || enq.opc_order_reference}</div>
+                            </>
+                          )}
+                          {enq.opc_no && (
+                            <div style={{ marginTop: '4px', padding: '4px 6px', background: '#f0fdfa', border: '1px solid #ccfbf1', borderRadius: '4px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+                                <span style={{ color: '#0f766e', fontWeight: 700, fontSize: '0.74rem' }}>{enq.opc_no}</span>
+                                <span className={`status-badge ${
+                                  enq.opc_status === 'Draft' ? 'badge-slate' :
+                                  enq.opc_status === 'Pending Approval' ? 'badge-amber' :
+                                  enq.opc_status === 'Approved' || enq.opc_status === 'Sent to Store' ? 'badge-blue' :
+                                  'badge-emerald'
+                                }`} style={{ fontSize: '0.62rem', padding: '1px 4px' }}>
+                                  {enq.opc_status}
+                                </span>
+                              </div>
+                              <div style={{ display: 'flex', gap: '3px', marginTop: '3px', flexWrap: 'wrap' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => setPreviewModal({ isOpen: true, type: 'opc', data: enq })}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '2px',
+                                    padding: '1px 5px',
+                                    background: '#ffffff',
+                                    border: '1px solid #99f6e4',
+                                    borderRadius: '3px',
+                                    fontSize: '0.66rem',
+                                    fontWeight: 600,
+                                    color: '#0f766e',
+                                    cursor: 'pointer'
+                                  }}
+                                  title="View OPC Document"
+                                >
+                                  <Eye size={9} /> View OPC
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => downloadDocumentPdf(buildOpcPdf(enq), `OPC-${enq.opc_no}.pdf`)}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    padding: '1px 4px',
+                                    background: '#ffffff',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '3px',
+                                    fontSize: '0.66rem',
+                                    cursor: 'pointer'
+                                  }}
+                                  title="Download OPC PDF"
+                                >
+                                  <Download size={9} />
+                                </button>
+                                {(enq.opc_status === 'Draft' || enq.opc_status === 'Pending Approval') && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setOpcModal({ isOpen: true, enquiry: enq })}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '2px',
+                                      padding: '1px 5px',
+                                      background: '#fffbeb',
+                                      border: '1px solid #fde68a',
+                                      borderRadius: '3px',
+                                      fontSize: '0.66rem',
+                                      fontWeight: 600,
+                                      color: '#b45309',
+                                      cursor: 'pointer'
+                                    }}
+                                    title="Edit OPC Details"
+                                  >
+                                    <Edit3 size={9} /> Edit
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          )}
                           {enq.transport_mode && (
                             <div style={{ marginTop: '2px' }}>
                               <span className="status-badge badge-blue" style={{ fontSize: '0.68rem', padding: '1px 5px' }}>
@@ -821,17 +917,24 @@ export default function SalesDashboard() {
                           </button>
                         )}
 
-                        {/* 4. Client Confirmed -> Forward Approved Enquiry to Store */}
-                        {enq.quotation_no && !enq.order_no && (
+                        {/* 4. Client Confirmed Quotation -> Generate / Manage OPC before Forwarding to Store */}
+                        {enq.quotation_no && !enq.opc_no && (
+                          <button
+                            className="dash-btn"
+                            style={{ padding: '4px 8px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#0d9488', borderColor: '#0d9488', color: '#ffffff' }}
+                            onClick={() => setOpcModal({ isOpen: true, enquiry: enq })}
+                          >
+                            <FileText size={12} /> Client Approved → Generate OPC
+                          </button>
+                        )}
+
+                        {enq.opc_no && (enq.opc_status === 'Draft' || enq.opc_status === 'Pending Approval') && (
                           <button
                             className="dash-btn dash-btn-amber"
                             style={{ padding: '4px 8px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                            onClick={() => {
-                              setActiveAction({ type: 'PO', item: enq });
-                              setPoNumber(`PO-${enq.customer_name?.slice(0, 3).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`);
-                            }}
+                            onClick={() => setOpcModal({ isOpen: true, enquiry: enq })}
                           >
-                            <FileCheck size={12} /> Approve & Forward to Store
+                            <ShieldCheck size={12} /> {enq.opc_status === 'Draft' ? 'Review & Submit OPC' : 'Approve OPC & Forward to Store'}
                           </button>
                         )}
 
@@ -1580,6 +1683,14 @@ export default function SalesDashboard() {
         type={previewModal.type}
         data={previewModal.data}
         onClose={() => setPreviewModal({ isOpen: false, type: 'quotation', data: null })}
+      />
+
+      {/* Order Processing Confirmation (OPC) Modal */}
+      <OpcModal
+        isOpen={opcModal.isOpen}
+        enquiry={opcModal.enquiry}
+        onClose={() => setOpcModal({ isOpen: false, enquiry: null })}
+        onSaved={fetchEnquiries}
       />
     </DashboardLayout>
   );

@@ -15,6 +15,16 @@ const {
 } = require('../controllers/salesController');
 const { packOrder } = require('../controllers/storeController');
 const { getStats } = require('../controllers/statsController');
+const {
+  getOpcByEnquiry,
+  getOpcById,
+  createOrSaveOpc,
+  updateOpc,
+  submitForApproval,
+  approveOpc,
+  storeVerifyStock,
+  storeCompletePacking
+} = require('../controllers/opcController');
 
 // Enquiries
 router.get('/enquiries', getEnquiries);
@@ -41,6 +51,16 @@ router.post('/purchase/pricing', submitPricing);
 
 // Store Department Endpoints
 router.post('/store/pack', packOrder);
+
+// Order Processing Confirmation (OPC) Endpoints
+router.get('/opc/enquiry/:enquiry_id', getOpcByEnquiry);
+router.get('/opc/:id', getOpcById);
+router.post('/opc', createOrSaveOpc);
+router.put('/opc/:id', updateOpc);
+router.post('/opc/:id/submit', submitForApproval);
+router.post('/opc/:id/approve', approveOpc);
+router.post('/opc/:id/store-verify', storeVerifyStock);
+router.post('/opc/:id/store-pack', storeCompletePacking);
 
 // Dashboard Statistics
 router.get('/stats', getStats);

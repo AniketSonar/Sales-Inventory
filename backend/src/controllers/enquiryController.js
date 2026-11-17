@@ -26,11 +26,46 @@ const getEnquiries = async (req, res) => {
         s.challan_no,
         s.stock_readiness,
         s.inspection_status,
-        s.delivered_at
+        s.delivered_at,
+        opc.id as opc_id,
+        opc.opc_no,
+        opc.status as opc_status,
+        opc.opc_date,
+        opc.order_reference as opc_order_reference,
+        opc.company_name as opc_company_name,
+        opc.contact_person as opc_contact_person,
+        opc.contact_phone as opc_contact_phone,
+        opc.contact_email as opc_contact_email,
+        opc.billing_address as opc_billing_address,
+        opc.delivery_address as opc_delivery_address,
+        opc.product_name as opc_product_name,
+        opc.description as opc_description,
+        opc.quantity as opc_quantity,
+        opc.unit_price as opc_unit_price,
+        opc.subtotal as opc_subtotal,
+        opc.discount_percent as opc_discount_percent,
+        opc.gst_percent as opc_gst_percent,
+        opc.gst_amount as opc_gst_amount,
+        opc.transport_charges as opc_transport_charges,
+        opc.grand_total as opc_grand_total,
+        opc.payment_terms as opc_payment_terms,
+        opc.delivery_terms as opc_delivery_terms,
+        opc.delivery_schedule as opc_delivery_schedule,
+        opc.remarks as opc_remarks,
+        opc.salesperson_name as opc_salesperson_name,
+        opc.approved_by as opc_approved_by,
+        opc.approved_at as opc_approved_at,
+        opc.store_verification_notes as opc_store_verification_notes,
+        opc.store_verified_by as opc_store_verified_by,
+        opc.store_verified_at as opc_store_verified_at,
+        opc.packing_notes as opc_packing_notes,
+        opc.packing_completed_by as opc_packing_completed_by,
+        opc.packing_completed_at as opc_packing_completed_at
       FROM enquiries e
       LEFT JOIN purchase_pricing p ON e.id = p.enquiry_id
       LEFT JOIN quotations q ON e.id = q.enquiry_id
       LEFT JOIN sales_orders s ON e.id = s.enquiry_id
+      LEFT JOIN order_processing_confirmations opc ON e.id = opc.enquiry_id
       ORDER BY e.created_at DESC
     `);
     res.json({ success: true, data: rows });

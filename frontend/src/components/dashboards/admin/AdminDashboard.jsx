@@ -5,7 +5,7 @@ import { BarChart3, Users, FileText, CheckCircle2, RefreshCw, Shield, Layers, Tr
 import { useLiveSync } from '../../../utils/useLiveSync';
 import SalesGraphicalAnalysis from './SalesGraphicalAnalysis';
 import DocumentModal from '../../common/DocumentModal';
-import { buildQuotationPdf, buildInvoicePdf, buildSalesOrderPdf, buildDeliveryChallanPdf, downloadDocumentPdf } from '../../../utils/documentGenerator';
+import { buildQuotationPdf, buildInvoicePdf, buildSalesOrderPdf, buildDeliveryChallanPdf, buildOpcPdf, downloadDocumentPdf } from '../../../utils/documentGenerator';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -198,49 +198,104 @@ export default function AdminDashboard() {
                           )}
                         </td>
                         <td>
-                          {enq.order_no ? (
+                          {enq.order_no || enq.opc_no ? (
                             <div>
-                              <span style={{ color: '#18476c', fontWeight: 700 }}>{enq.order_no}</span>
-                              <div style={{ fontSize: '0.74rem', color: '#64748b' }}>PO: {enq.po_number}</div>
+                              {enq.opc_no && (
+                                <div style={{ marginBottom: '3px' }}>
+                                  <span style={{ color: '#0d9488', fontWeight: 700, fontSize: '0.8rem' }}>{enq.opc_no}</span>
+                                  <span className="status-badge badge-slate" style={{ fontSize: '0.64rem', padding: '1px 4px', marginLeft: '3px' }}>
+                                    {enq.opc_status || 'OPC'}
+                                  </span>
+                                  <div style={{ display: 'flex', gap: '3px', marginTop: '2px' }}>
+                                    <button
+                                      type="button"
+                                      onClick={() => setPreviewModal({ isOpen: true, type: 'opc', data: enq })}
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '2px',
+                                        padding: '1px 5px',
+                                        background: '#f0fdfa',
+                                        border: '1px solid #99f6e4',
+                                        borderRadius: '3px',
+                                        fontSize: '0.68rem',
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                        color: '#0f766e'
+                                      }}
+                                      title="View Order Processing Confirmation"
+                                    >
+                                      <Eye size={10} color="#0d9488" /> OPC
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => downloadDocumentPdf(buildOpcPdf(enq), `OPC-${enq.opc_no}.pdf`)}
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        padding: '1px 4px',
+                                        background: '#f8fafc',
+                                        border: '1px solid #cbd5e1',
+                                        borderRadius: '3px',
+                                        fontSize: '0.68rem',
+                                        cursor: 'pointer'
+                                      }}
+                                      title="Download OPC PDF"
+                                    >
+                                      <Download size={10} />
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                              {enq.order_no && (
+                                <>
+                                  <span style={{ color: '#18476c', fontWeight: 700 }}>{enq.order_no}</span>
+                                  <div style={{ fontSize: '0.74rem', color: '#64748b' }}>PO: {enq.po_number || enq.opc_order_reference}</div>
+                                </>
+                              )}
                               <div style={{ display: 'flex', gap: '4px', marginTop: '3px', flexWrap: 'wrap' }}>
-                                <button
-                                  type="button"
-                                  onClick={() => setPreviewModal({ isOpen: true, type: 'order', data: enq })}
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '3px',
-                                    padding: '2px 6px',
-                                    background: '#fffbeb',
-                                    border: '1px solid #fde68a',
-                                    borderRadius: '4px',
-                                    fontSize: '0.7rem',
-                                    fontWeight: 600,
-                                    cursor: 'pointer',
-                                    color: '#b45309'
-                                  }}
-                                  title="View Sales Order"
-                                >
-                                  <Eye size={10} color="#d97706" /> SO
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => downloadDocumentPdf(buildSalesOrderPdf(enq), `SalesOrder-${enq.order_no}.pdf`)}
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    padding: '2px 5px',
-                                    background: '#fffbeb',
-                                    border: '1px solid #fde68a',
-                                    borderRadius: '4px',
-                                    fontSize: '0.7rem',
-                                    cursor: 'pointer',
-                                    color: '#b45309'
-                                  }}
-                                  title="Download Sales Order PDF"
-                                >
-                                  <Download size={10} />
-                                </button>
+                                {enq.order_no && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => setPreviewModal({ isOpen: true, type: 'order', data: enq })}
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '3px',
+                                        padding: '2px 6px',
+                                        background: '#fffbeb',
+                                        border: '1px solid #fde68a',
+                                        borderRadius: '4px',
+                                        fontSize: '0.7rem',
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                        color: '#b45309'
+                                      }}
+                                      title="View Sales Order"
+                                    >
+                                      <Eye size={10} color="#d97706" /> SO
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => downloadDocumentPdf(buildSalesOrderPdf(enq), `SalesOrder-${enq.order_no}.pdf`)}
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        padding: '2px 5px',
+                                        background: '#fffbeb',
+                                        border: '1px solid #fde68a',
+                                        borderRadius: '4px',
+                                        fontSize: '0.7rem',
+                                        cursor: 'pointer',
+                                        color: '#b45309'
+                                      }}
+                                      title="Download Sales Order PDF"
+                                    >
+                                      <Download size={10} />
+                                    </button>
+                                  </>
+                                )}
                               </div>
                               {enq.invoice_no && (
                                 <div style={{ display: 'flex', gap: '4px', marginTop: '3px' }}>
