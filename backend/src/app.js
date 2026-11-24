@@ -13,6 +13,14 @@ app.use(express.urlencoded({ extended: true, limit: "15mb" }));
 app.use("/api/auth", authRoutes);
 app.use("/api", apiRoutes);
 
+app.get("/", (req, res) => {
+  res.json({
+    status: "ok",
+    message: "B2B Sales & Inventory Backend API is running successfully.",
+    health: "/api/health"
+  });
+});
+
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", service: "B2B Sales & Inventory API with Live Database" });
 });
