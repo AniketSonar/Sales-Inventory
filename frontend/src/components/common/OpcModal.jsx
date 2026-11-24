@@ -4,6 +4,7 @@ import {
   Download, ExternalLink, Edit3, Save, ArrowRight, AlertCircle, Building, Truck, DollarSign
 } from 'lucide-react';
 import { buildOpcPdf, previewDocumentPdf, downloadDocumentPdf } from '../../utils/documentGenerator';
+import { API_URL } from '../../config/api';
 
 export default function OpcModal({ isOpen, onClose, enquiry, onSaved }) {
   if (!isOpen || !enquiry) return null;
@@ -90,8 +91,8 @@ export default function OpcModal({ isOpen, onClose, enquiry, onSaved }) {
     try {
       const payload = assembleData(targetStatus);
       const url = enquiry.opc_id 
-        ? `http://localhost:5000/api/opc/${enquiry.opc_id}`
-        : 'http://localhost:5000/api/opc';
+        ? `${API_URL}/api/opc/${enquiry.opc_id}`
+        : `${API_URL}/api/opc`;
       const method = enquiry.opc_id ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
@@ -127,7 +128,7 @@ export default function OpcModal({ isOpen, onClose, enquiry, onSaved }) {
     setLoading(true);
     setErrorMsg('');
     try {
-      const res = await fetch(`http://localhost:5000/api/opc/${enquiry.opc_id}/submit`, {
+      const res = await fetch(`${API_URL}/api/opc/${enquiry.opc_id}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ performed_by: salespersonName })
@@ -160,7 +161,7 @@ export default function OpcModal({ isOpen, onClose, enquiry, onSaved }) {
         return;
       }
 
-      const res = await fetch(`http://localhost:5000/api/opc/${opcId}/approve`, {
+      const res = await fetch(`${API_URL}/api/opc/${opcId}/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ approved_by: 'Commercial & Operations Authority' })

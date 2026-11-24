@@ -6,6 +6,7 @@ import {
   ArrowRight, Eye, Download, ShieldCheck, BellRing, PackageCheck, AlertCircle, FileText, CheckCheck, X
 } from 'lucide-react';
 import { useLiveSync } from '../../../utils/useLiveSync';
+import { API_URL } from '../../../config/api';
 import DocumentModal from '../../common/DocumentModal';
 import { buildSalesOrderPdf, buildOpcPdf, downloadDocumentPdf } from '../../../utils/documentGenerator';
 
@@ -18,7 +19,7 @@ export default function StoreDashboard() {
 
   const fetchOrders = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/enquiries');
+      const res = await fetch(`${API_URL}/api/enquiries`);
       const data = await res.json();
       if (data.success) {
         // Filter orders that have been approved and forwarded to Store
@@ -41,7 +42,7 @@ export default function StoreDashboard() {
     if (!notesModal.enquiry) return;
     try {
       const opcId = notesModal.enquiry.opc_id;
-      const res = await fetch(`http://localhost:5000/api/opc/${opcId}/store-verify`, {
+      const res = await fetch(`${API_URL}/api/opc/${opcId}/store-verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -68,7 +69,7 @@ export default function StoreDashboard() {
     try {
       const opcId = notesModal.enquiry.opc_id;
       if (opcId) {
-        const res = await fetch(`http://localhost:5000/api/opc/${opcId}/store-pack`, {
+        const res = await fetch(`${API_URL}/api/opc/${opcId}/store-pack`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -95,7 +96,7 @@ export default function StoreDashboard() {
 
   const handleLegacyPackOrder = async (enquiryId, orderNo) => {
     try {
-      const res = await fetch('http://localhost:5000/api/store/pack', {
+      const res = await fetch(`${API_URL}/api/store/pack`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

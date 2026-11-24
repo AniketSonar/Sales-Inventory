@@ -6,6 +6,7 @@ import {
   User, Phone, Mail, Box, Paperclip, X, Boxes, Edit2, Trash2, FolderPlus 
 } from 'lucide-react';
 import { useLiveSync } from '../../../utils/useLiveSync';
+import { API_URL } from '../../../config/api';
 
 export default function ReceptionistDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -34,7 +35,7 @@ export default function ReceptionistDashboard() {
 
   const fetchEnquiries = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/enquiries');
+      const res = await fetch(`${API_URL}/api/enquiries`);
       const data = await res.json();
       if (data.success) {
         setEnquiries(data.data);
@@ -46,7 +47,7 @@ export default function ReceptionistDashboard() {
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/categories');
+      const res = await fetch(`${API_URL}/api/categories`);
       const data = await res.json();
       if (data.success && data.data) {
         setCategories(data.data);
@@ -88,7 +89,7 @@ export default function ReceptionistDashboard() {
   const handleCreate = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch('http://localhost:5000/api/enquiries', {
+      const res = await fetch(`${API_URL}/api/enquiries`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -128,7 +129,7 @@ export default function ReceptionistDashboard() {
     if (!newCatName.trim()) return;
 
     try {
-      const res = await fetch('http://localhost:5000/api/categories', {
+      const res = await fetch(`${API_URL}/api/categories`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -157,7 +158,7 @@ export default function ReceptionistDashboard() {
     if (!editingCat || !editName.trim()) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/categories/${editingCat.id}`, {
+      const res = await fetch(`${API_URL}/api/categories/${editingCat.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -182,7 +183,7 @@ export default function ReceptionistDashboard() {
     if (!window.confirm(`Are you sure you want to delete category "${catName}"?`)) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/categories/${catId}`, {
+      const res = await fetch(`${API_URL}/api/categories/${catId}`, {
         method: 'DELETE'
       });
       const data = await res.json();

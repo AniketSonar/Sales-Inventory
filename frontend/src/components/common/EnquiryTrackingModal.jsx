@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_URL } from '../../config/api';
 import {
   X,
   Check,
@@ -51,7 +52,7 @@ export default function EnquiryTrackingModal({
   const fetchTimeline = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/enquiries/${enquiry.id}/timeline`);
+      const res = await fetch(`${API_URL}/api/enquiries/${enquiry.id}/timeline`);
       const data = await res.json();
       if (data.success && data.data) {
         setTimelineData({
@@ -89,7 +90,7 @@ export default function EnquiryTrackingModal({
     if (!salespersonInput.trim()) return;
     setAssigning(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/enquiries/${enquiry.id}/assign`, {
+      const res = await fetch(`${API_URL}/api/enquiries/${enquiry.id}/assign`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

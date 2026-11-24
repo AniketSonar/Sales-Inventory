@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { API_URL } from '../../../config/api';
 import DashboardLayout from '../../layout/DashboardLayout';
 import { adminConfig } from '../../layout/dashboardConfigs';
 import {
@@ -56,8 +57,8 @@ export default function AdminDashboard() {
   const loadData = async () => {
     try {
       const [resStats, resEnq] = await Promise.all([
-        fetch('http://localhost:5000/api/stats'),
-        fetch('http://localhost:5000/api/enquiries')
+        fetch(`${API_URL}/api/stats`),
+        fetch(`${API_URL}/api/enquiries`)
       ]);
       const dataStats = await resStats.json();
       const dataEnq = await resEnq.json();

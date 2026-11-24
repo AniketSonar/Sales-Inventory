@@ -6,6 +6,7 @@ import {
   AlertCircle, ShoppingCart, Box, X, Lock, Send, ShieldCheck, CheckSquare, Layers 
 } from 'lucide-react';
 import { useLiveSync } from '../../../utils/useLiveSync';
+import { API_URL } from '../../../config/api';
 
 export default function PurchaseDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -34,7 +35,7 @@ export default function PurchaseDashboard() {
 
   const fetchEnquiries = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/enquiries');
+      const res = await fetch(`${API_URL}/api/enquiries`);
       const data = await res.json();
       if (data.success) {
         setEnquiries(data.data);
@@ -63,7 +64,7 @@ export default function PurchaseDashboard() {
     if (!selectedEnquiry) return;
 
     try {
-      const res = await fetch('http://localhost:5000/api/purchase/pricing', {
+      const res = await fetch(`${API_URL}/api/purchase/pricing`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

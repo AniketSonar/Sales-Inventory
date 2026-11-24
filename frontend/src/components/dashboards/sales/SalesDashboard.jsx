@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { API_URL } from '../../../config/api';
 import DashboardLayout from '../../layout/DashboardLayout';
 import { salesConfig } from '../../layout/dashboardConfigs';
 import {
@@ -106,7 +107,7 @@ export default function SalesDashboard() {
 
   const fetchEnquiries = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/enquiries');
+      const res = await fetch(`${API_URL}/api/enquiries`);
       const data = await res.json();
       if (data.success) {
         setEnquiries(data.data);
@@ -122,7 +123,7 @@ export default function SalesDashboard() {
   const handleOpenTimeline = async (enq) => {
     setTimelineModal({ isOpen: true, item: enq, history: [], followups: [], loading: true });
     try {
-      const res = await fetch(`http://localhost:5000/api/enquiries/${enq.id}/timeline`);
+      const res = await fetch(`${API_URL}/api/enquiries/${enq.id}/timeline`);
       const data = await res.json();
       if (data.success) {
         setTimelineModal({
@@ -147,7 +148,7 @@ export default function SalesDashboard() {
     if (!activeAction?.item) return;
 
     try {
-      const res = await fetch('http://localhost:5000/api/sales/followup', {
+      const res = await fetch(`${API_URL}/api/sales/followup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -177,7 +178,7 @@ export default function SalesDashboard() {
     if (!activeAction?.item) return;
 
     try {
-      const res = await fetch('http://localhost:5000/api/sales/verify-forward', {
+      const res = await fetch(`${API_URL}/api/sales/verify-forward`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -205,7 +206,7 @@ export default function SalesDashboard() {
     if (!activeAction?.item) return;
 
     try {
-      const res = await fetch('http://localhost:5000/api/sales/quotation', {
+      const res = await fetch(`${API_URL}/api/sales/quotation`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -242,7 +243,7 @@ export default function SalesDashboard() {
     if (!activeAction?.item) return;
 
     try {
-      const res = await fetch('http://localhost:5000/api/sales/order', {
+      const res = await fetch(`${API_URL}/api/sales/order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -269,7 +270,7 @@ export default function SalesDashboard() {
     if (!activeAction?.item) return;
 
     try {
-      const res = await fetch('http://localhost:5000/api/sales/inspect-stock', {
+      const res = await fetch(`${API_URL}/api/sales/inspect-stock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -296,7 +297,7 @@ export default function SalesDashboard() {
     if (!activeAction?.item) return;
 
     try {
-      const res = await fetch('http://localhost:5000/api/sales/dispatch', {
+      const res = await fetch(`${API_URL}/api/sales/dispatch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -336,7 +337,7 @@ export default function SalesDashboard() {
     if (!activeAction?.item) return;
 
     try {
-      const res = await fetch('http://localhost:5000/api/sales/deliver', {
+      const res = await fetch(`${API_URL}/api/sales/deliver`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
