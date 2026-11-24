@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-const { getEnquiries, createEnquiry, getEnquiryTimeline } = require('../controllers/enquiryController');
+const { getEnquiries, createEnquiry, getEnquiryTimeline, assignSalesperson } = require('../controllers/enquiryController');
 const { getCategories, createCategory, updateCategory, deleteCategory } = require('../controllers/categoryController');
 const { submitPricing } = require('../controllers/purchaseController');
 const { 
@@ -30,6 +30,7 @@ const {
 router.get('/enquiries', getEnquiries);
 router.post('/enquiries', createEnquiry);
 router.get('/enquiries/:id/timeline', getEnquiryTimeline);
+router.put('/enquiries/:id/assign', assignSalesperson);
 
 // Categories (Receptionist category management)
 router.get('/categories', getCategories);

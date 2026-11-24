@@ -15,7 +15,8 @@ import {
   Calendar,
   CheckSquare,
   FileCheck,
-  PackageCheck
+  PackageCheck,
+  Activity
 } from 'lucide-react';
 
 export const adminConfig = {
@@ -24,6 +25,7 @@ export const adminConfig = {
   defaultName: 'System Administrator',
   menu: [
     { id: 'dashboard', label: 'Executive Dashboard', icon: LayoutDashboard },
+    { id: 'tracking', label: 'Live Enquiry Tracking', icon: Activity },
     { id: 'pipeline', label: 'All Orders Pipeline', icon: FileText },
     { id: 'roles', label: 'User Roles & Depts', icon: Users },
     { id: 'reports', label: 'Analytics & Reports', icon: BarChart3 }

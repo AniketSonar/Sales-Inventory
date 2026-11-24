@@ -1,0 +1,668 @@
+/* ==========================================================================
+   Live Enquiry Tracking Modal - CSS Stylesheet
+   Designed to match reference UI screenshot with modern B2B SaaS aesthetics
+   ========================================================================== */
+
+.tracking-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  overflow-y: auto;
+}
+
+.tracking-modal-dialog {
+  background: #ffffff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 980px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  animation: modalScaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes modalScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Modal Header */
+.tracking-modal-header {
+  padding: 1.25rem 1.75rem;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.tracking-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.tracking-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.tracking-modal-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.live-pulse-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #059669;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #10b981;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: livePulse 2s infinite;
+}
+
+@keyframes livePulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.tracking-subtext {
+  font-size: 0.82rem;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.tracking-modal-close {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+  padding: 0.4rem;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tracking-modal-close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* Modal Body */
+.tracking-modal-body {
+  padding: 1.5rem 1.75rem;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* --------------------------------------------------------------------------
+   REFERENCE TIMELINE COMPONENT (Order Confirmed -> Shipped -> Delivery)
+   Matches attached reference screenshot 1-to-1
+   -------------------------------------------------------------------------- */
+.ref-tracking-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 2rem 2rem 1.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.ref-timeline-container {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  position: relative;
+  width: 100%;
+}
+
+.ref-timeline-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+  min-width: 140px;
+  text-align: center;
+}
+
+/* Milestone Circle Nodes */
+.ref-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+  margin-bottom: 0.85rem;
+  background: #ffffff;
+}
+
+.ref-circle.completed {
+  background: #00873e; /* Exact rich green matching screenshot */
+  color: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 135, 62, 0.25);
+}
+
+.ref-circle.active {
+  background: #ffffff;
+  border: 2.5px solid #00873e;
+  box-shadow: 0 0 0 4px rgba(0, 135, 62, 0.15);
+}
+
+.ref-circle.active .active-inner-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #00873e;
+  animation: pulseInner 1.5s infinite;
+}
+
+@keyframes pulseInner {
+  0%, 100% { transform: scale(0.9); opacity: 0.8; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+
+.ref-circle.pending {
+  background: #ffffff;
+  border: 2px solid #9ca3af; /* Light grey ring from reference image */
+}
+
+/* Connecting Line between steps */
+.ref-connector {
+  position: absolute;
+  top: 14px; /* Centered with 28px circle */
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #e5e7eb;
+  z-index: 1;
+}
+
+.ref-connector-fill {
+  height: 100%;
+  background: #00873e; /* Solid green matching screenshot */
+  transition: width 0.4s ease;
+}
+
+/* Labels below each node */
+.ref-step-title {
+  font-size: 0.96rem;
+  font-weight: 600;
+  color: #374151; /* Dark charcoal matching screenshot */
+  margin-bottom: 0.2rem;
+  line-height: 1.25;
+}
+
+.ref-step-date {
+  font-size: 0.85rem;
+  color: #6b7280; /* Muted grey matching screenshot */
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+/* --------------------------------------------------------------------------
+   Current Responsible & Department Summary Card
+   -------------------------------------------------------------------------- */
+.stage-summary-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #18476c;
+  border-radius: 12px;
+  padding: 1.15rem 1.35rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1.15rem;
+}
+
+.stage-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.summary-label {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.summary-val {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* --------------------------------------------------------------------------
+   Alerts: Delays, Pending Approvals, Blocked Stages
+   -------------------------------------------------------------------------- */
+.alerts-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tracking-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.9rem 1.1rem;
+  border-radius: 10px;
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.tracking-alert.warning {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+}
+
+.tracking-alert.danger {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.tracking-alert.info {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
+}
+
+/* --------------------------------------------------------------------------
+   Tabs for Switching Views (Overview vs 15-Stage vs Activity Audit)
+   -------------------------------------------------------------------------- */
+.tracking-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 0.25rem;
+}
+
+.tracking-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.95rem;
+  background: transparent;
+  border: none;
+  border-radius: 8px 8px 0 0;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.15s ease;
+}
+
+.tracking-tab-btn:hover {
+  color: #0f172a;
+  background: #f1f5f9;
+}
+
+.tracking-tab-btn.active {
+  color: #18476c;
+  background: #edf4f9;
+  font-weight: 700;
+}
+
+.tracking-tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #18476c;
+  border-radius: 3px 3px 0 0;
+}
+
+/* --------------------------------------------------------------------------
+   15-Stage Internal Lifecycle Tracker (Horizontal Stepper)
+   -------------------------------------------------------------------------- */
+.stages-stepper-wrap {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.stages-progress-bar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  gap: 1rem;
+}
+
+.progress-track-bg {
+  flex: 1;
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.progress-track-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00873e, #059669);
+  border-radius: 9999px;
+  transition: width 0.4s ease;
+}
+
+.stages-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 0.85rem;
+}
+
+.stage-card-node {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.stage-card-node.completed {
+  border-color: #a7f3d0;
+  background: #f0fdf4;
+}
+
+.stage-card-node.active {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.stage-card-node.pending {
+  background: #f8fafc;
+  opacity: 0.85;
+}
+
+.stage-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stage-icon-circle {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.stage-icon-circle.completed {
+  background: #00873e;
+  color: #ffffff;
+}
+
+.stage-icon-circle.active {
+  background: #2563eb;
+  color: #ffffff;
+  animation: pulseStage 1.8s infinite;
+}
+
+@keyframes pulseStage {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.5); }
+  50% { box-shadow: 0 0 0 5px rgba(37, 99, 235, 0); }
+}
+
+.stage-icon-circle.pending {
+  background: #e2e8f0;
+  color: #64748b;
+}
+
+.stage-name-text {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.25;
+}
+
+.stage-dept-tag {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+.dept-reception { background: #e0f2fe; color: #0369a1; }
+.dept-sales { background: #eff6ff; color: #1e40af; }
+.dept-purchase { background: #fef3c7; color: #b45309; }
+.dept-store { background: #f3e8ff; color: #6b21a8; }
+.dept-logistics { background: #ecfdf5; color: #047857; }
+.dept-management { background: #fae8ff; color: #86198f; }
+
+.stage-time-text {
+  font-size: 0.72rem;
+  color: #64748b;
+  margin-top: 0.2rem;
+}
+
+.stage-responsible-text {
+  font-size: 0.7rem;
+  color: #475569;
+  font-weight: 500;
+}
+
+/* --------------------------------------------------------------------------
+   Activity Audit History Trail (Requirement 4)
+   -------------------------------------------------------------------------- */
+.history-audit-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.history-item-row {
+  display: flex;
+  gap: 1rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1rem 1.15rem;
+  position: relative;
+  transition: all 0.15s ease;
+}
+
+.history-item-row:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.history-timeline-bar {
+  width: 3px;
+  background: #18476c;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.history-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.history-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.history-action-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.history-time-stamp {
+  font-size: 0.75rem;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.history-user-pill {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #18476c;
+  background: #edf4f9;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  width: fit-content;
+}
+
+.history-notes-box {
+  font-size: 0.82rem;
+  color: #334155;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  margin-top: 0.2rem;
+  line-height: 1.4;
+}
+
+/* Modal Footer */
+.tracking-modal-footer {
+  padding: 1rem 1.75rem;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.admin-assign-box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.assign-select {
+  padding: 0.4rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  font-size: 0.82rem;
+  background: #ffffff;
+  color: #0f172a;
+  outline: none;
+}
+
+.assign-btn {
+  padding: 0.42rem 0.85rem;
+  border-radius: 6px;
+  background: #18476c;
+  color: #ffffff;
+  border: none;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.assign-btn:hover {
+  background: #123755;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .ref-timeline-container {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  .ref-connector {
+    display: none;
+  }
+  .ref-timeline-step {
+    flex-direction: row;
+    gap: 1rem;
+    text-align: left;
+    width: 100%;
+  }
+  .ref-circle {
+    margin-bottom: 0;
+  }
+}
